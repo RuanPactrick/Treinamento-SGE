@@ -2,125 +2,484 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <title>Canvas da Jornada SGE - A3</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Treinamento SGE – Canvas da Jornada</title>
+
+    <!-- Firebase SDK -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
+        import { getFirestore, doc, setDoc, onSnapshot, collection, getDocs }
+            from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCdrbbUJTQCXXYBNMDg5qsBqBIJ0K8noNw",
+            authDomain: "treinamento-sge.firebaseapp.com",
+            projectId: "treinamento-sge",
+            storageBucket: "treinamento-sge.firebasestorage.app",
+            messagingSenderId: "823970605932",
+            appId: "1:823970605932:web:de934d298caa84e21be149"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db  = getFirestore(app);
+
+        // ── Expõe funções para o código global ──
+        window._db = db;
+        window._fsDoc = doc;
+        window._fsSetDoc = setDoc;
+        window._fsOnSnapshot = onSnapshot;
+        window._fsCollection = collection;
+        window._fsGetDocs = getDocs;
+
+        // ── Escuta em tempo real o estado das equipes ──
+        window._listenTeams = function(callback) {
+            return onSnapshot(doc(db, "sessao", "equipes"), callback);
+        };
+
+        // ── Registra equipe escolhida ──
+        window._claimTeam = async function(numero, nome) {
+            const ref = doc(db, "sessao", "equipes");
+            const update = {};
+            update[`equipe_${numero}`] = { numero, nome, ocupada: true };
+            await setDoc(ref, update, { merge: true });
+        };
+
+        // ── Salva dados do canvas de uma equipe ──
+        window._saveCanvas = async function(numero, dados) {
+            const ref = doc(db, "canvas", `equipe_${numero}`);
+            await setDoc(ref, dados, { merge: true });
+        };
+
+        // ── Escuta canvas de uma equipe ──
+        window._listenCanvas = function(numero, callback) {
+            return onSnapshot(doc(db, "canvas", `equipe_${numero}`), callback);
+        };
+
+        window._firebaseReady = true;
+        document.dispatchEvent(new Event("firebase-ready"));
+    </script>
+
+    <!-- QR Code lib -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <!-- html2canvas + jsPDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
     <style>
-        @page {
-            size: A3 landscape;
-            margin: 15mm;
-        }
-        body {
-            font-family: 'Segoe UI', Helvetica, Arial, sans-serif;
-            margin: 0;
-            padding: 0;
-            color: #2c3e50;
-            background-color: #f0f2f5;
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        :root {
+            --navy:  #1a365d;
+            --blue:  #2b6cb0;
+            --light: #ebf4ff;
+            --green: #276749;
+            --red:   #c53030;
+            --gray:  #718096;
         }
 
-        /* ── NAVEGAÇÃO DE ABAS ── */
+        body {
+            font-family: 'Segoe UI', Helvetica, Arial, sans-serif;
+            background: #f0f4f8;
+            color: #2d3748;
+            min-height: 100vh;
+        }
+
+        /* ════════════════════════════════
+           TELA HOME
+        ════════════════════════════════ */
+        #page-home {
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        .home-hero {
+            background: linear-gradient(135deg, #1a365d 0%, #2b6cb0 100%);
+            color: #fff;
+            padding: 60px 40px 50px;
+            text-align: center;
+        }
+        .home-hero .logo-wrap {
+            margin-bottom: 28px;
+        }
+        .home-hero .logo-wrap img {
+            height: 60px;
+            object-fit: contain;
+            filter: brightness(0) invert(1);
+        }
+        .home-hero h1 {
+            font-size: 2.4rem;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+        }
+        .home-hero h2 {
+            font-size: 1.15rem;
+            font-weight: 400;
+            opacity: .85;
+            max-width: 680px;
+            margin: 0 auto;
+            line-height: 1.6;
+        }
+
+        .home-body {
+            flex: 1;
+            max-width: 960px;
+            margin: 0 auto;
+            padding: 48px 24px 60px;
+            width: 100%;
+        }
+
+        .section-title {
+            font-size: 1.25rem;
+            font-weight: 700;
+            color: var(--navy);
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .section-title::after {
+            content: '';
+            flex: 1;
+            height: 2px;
+            background: #e2e8f0;
+        }
+
+        /* Cards de info */
+        .info-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+            gap: 20px;
+            margin-bottom: 48px;
+        }
+        .info-card {
+            background: #fff;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 2px 12px rgba(0,0,0,.07);
+            border-top: 4px solid var(--blue);
+        }
+        .info-card .ic-icon { font-size: 2rem; margin-bottom: 12px; }
+        .info-card h3 { font-size: 1rem; color: var(--navy); margin-bottom: 8px; }
+        .info-card p  { font-size: .9rem; color: var(--gray); line-height: 1.6; }
+
+        /* Bloco QR + CTA */
+        .access-row {
+            display: flex;
+            gap: 32px;
+            align-items: center;
+            flex-wrap: wrap;
+            background: #fff;
+            border-radius: 12px;
+            padding: 32px;
+            box-shadow: 0 2px 12px rgba(0,0,0,.07);
+            margin-bottom: 40px;
+        }
+        .qr-wrap {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+        .qr-wrap p { font-size: .82rem; color: var(--gray); text-align: center; }
+        #qrcode canvas, #qrcode img { border-radius: 8px; }
+
+        .access-info { flex: 1; min-width: 220px; }
+        .access-info h3 { font-size: 1.15rem; color: var(--navy); margin-bottom: 8px; }
+        .access-info p  { font-size: .9rem; color: var(--gray); line-height: 1.6; margin-bottom: 16px; }
+        .url-badge {
+            background: #ebf4ff;
+            border: 1px solid #bee3f8;
+            border-radius: 8px;
+            padding: 10px 16px;
+            font-size: .85rem;
+            color: var(--blue);
+            font-weight: 600;
+            word-break: break-all;
+        }
+
+        /* Botão principal */
+        .btn-primary {
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
+            background: var(--navy);
+            color: #fff;
+            border: none;
+            border-radius: 50px;
+            padding: 16px 40px;
+            font-size: 1.05rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: background .2s, transform .1s;
+            font-family: inherit;
+            text-decoration: none;
+        }
+        .btn-primary:hover  { background: var(--blue); }
+        .btn-primary:active { transform: scale(.97); }
+
+        .cta-wrap { text-align: center; }
+        .cta-wrap p { font-size: .88rem; color: var(--gray); margin-top: 12px; }
+
+        /* ════════════════════════════════
+           MODAL SELEÇÃO DE EQUIPE
+        ════════════════════════════════ */
+        .modal-overlay {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,.55);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .modal-overlay.show { display: flex; }
+
+        .modal-box {
+            background: #fff;
+            border-radius: 16px;
+            padding: 36px 32px;
+            width: 100%;
+            max-width: 460px;
+            box-shadow: 0 20px 60px rgba(0,0,0,.25);
+            animation: popIn .25s ease;
+        }
+        @keyframes popIn {
+            from { transform: scale(.92); opacity: 0; }
+            to   { transform: scale(1);   opacity: 1; }
+        }
+        .modal-box h2 {
+            font-size: 1.3rem;
+            color: var(--navy);
+            margin-bottom: 6px;
+        }
+        .modal-box p.modal-sub {
+            font-size: .88rem;
+            color: var(--gray);
+            margin-bottom: 24px;
+        }
+
+        .team-grid {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .team-num-btn {
+            aspect-ratio: 1;
+            border-radius: 10px;
+            border: 2px solid #e2e8f0;
+            background: #f7fafc;
+            font-size: 1.4rem;
+            font-weight: 700;
+            color: var(--navy);
+            cursor: pointer;
+            transition: all .15s;
+            font-family: inherit;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            gap: 2px;
+        }
+        .team-num-btn:hover:not(:disabled) {
+            border-color: var(--blue);
+            background: var(--light);
+            color: var(--blue);
+        }
+        .team-num-btn.selected {
+            border-color: var(--navy);
+            background: var(--navy);
+            color: #fff;
+        }
+        .team-num-btn:disabled {
+            opacity: .4;
+            cursor: not-allowed;
+            background: #edf2f7;
+        }
+        .team-num-btn .occupied-label {
+            font-size: 9px;
+            font-weight: 600;
+            opacity: .85;
+        }
+
+        .modal-field {
+            margin-bottom: 18px;
+        }
+        .modal-field label {
+            display: block;
+            font-size: .88rem;
+            font-weight: 600;
+            color: var(--navy);
+            margin-bottom: 6px;
+        }
+        .modal-field input {
+            width: 100%;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 10px 14px;
+            font-size: .95rem;
+            font-family: inherit;
+            outline: none;
+            transition: border-color .2s;
+        }
+        .modal-field input:focus { border-color: var(--blue); }
+
+        .modal-actions {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+        }
+        .btn-cancel {
+            background: #edf2f7;
+            color: #4a5568;
+            border: none;
+            border-radius: 8px;
+            padding: 10px 22px;
+            font-size: .9rem;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: inherit;
+        }
+        .btn-confirm {
+            background: var(--navy);
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            padding: 10px 22px;
+            font-size: .9rem;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: inherit;
+            transition: background .2s;
+        }
+        .btn-confirm:hover    { background: var(--blue); }
+        .btn-confirm:disabled { background: #a0aec0; cursor: not-allowed; }
+
+        .modal-error {
+            font-size: .83rem;
+            color: var(--red);
+            margin-top: -10px;
+            margin-bottom: 12px;
+            display: none;
+        }
+        .modal-error.show { display: block; }
+
+        /* ════════════════════════════════
+           TELA CANVAS
+        ════════════════════════════════ */
+        #page-canvas { display: none; background: #f0f4f8; }
+
+        @page { size: A3 landscape; margin: 15mm; }
+
+        /* Tab nav */
         .tab-nav {
             display: flex;
             gap: 8px;
-            padding: 16px 20px 0;
-            background: #1a365d;
+            padding: 14px 20px 0;
+            background: var(--navy);
             justify-content: center;
+            align-items: flex-end;
+            flex-wrap: wrap;
         }
         .tab-btn {
-            background: rgba(255,255,255,0.15);
-            border: 2px solid rgba(255,255,255,0.3);
+            background: rgba(255,255,255,.15);
+            border: 2px solid rgba(255,255,255,.3);
             border-bottom: none;
             border-radius: 8px 8px 0 0;
-            padding: 10px 28px;
+            padding: 10px 26px;
             font-size: 14px;
             font-weight: 700;
             cursor: pointer;
-            color: rgba(255,255,255,0.75);
+            color: rgba(255,255,255,.7);
             transition: all .2s;
-            font-family: 'Segoe UI', Helvetica, Arial, sans-serif;
+            font-family: inherit;
+            position: relative;
         }
-        .tab-btn:hover { background: rgba(255,255,255,0.25); color: #fff; }
-        .tab-btn.active {
-            background: #ffffff;
-            color: #1a365d;
-            border-color: #ffffff;
+        .tab-btn:hover  { background: rgba(255,255,255,.25); color: #fff; }
+        .tab-btn.active { background: #fff; color: var(--navy); border-color: #fff; }
+        .tab-btn.my-team {
+            border-color: #f6e05e;
+            color: #f6e05e;
         }
-
-        /* ── WRAPPER DE CADA CANVAS ── */
-        .canvas-page {
+        .tab-btn.my-team.active { background: #fff; color: var(--navy); }
+        .tab-btn .my-tag {
             display: none;
-            padding: 20px;
+            position: absolute;
+            top: -9px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #d69e2e;
+            color: #fff;
+            font-size: 9px;
+            font-weight: 800;
+            padding: 1px 7px;
+            border-radius: 20px;
+            white-space: nowrap;
         }
+        .tab-btn.my-team .my-tag { display: block; }
+
+        .tab-nav-right {
+            margin-left: auto;
+            padding-bottom: 4px;
+        }
+        .btn-save-pdf {
+            background: #c53030;
+            border: 2px solid #9b2c2c;
+            border-radius: 8px;
+            padding: 8px 20px;
+            font-size: 13px;
+            font-weight: 700;
+            cursor: pointer;
+            color: #fff;
+            font-family: inherit;
+            transition: background .2s;
+        }
+        .btn-save-pdf:hover    { background: #9b2c2c; }
+        .btn-save-pdf:disabled { background: #a0aec0; cursor: not-allowed; }
+
+        /* Canvas page */
+        .canvas-page { display: none; padding: 20px; }
         .canvas-page.active { display: block; }
 
         .canvas-wrapper {
-            border: 3px solid #1a365d;
+            border: 3px solid var(--navy);
             border-radius: 8px;
             padding: 20px;
             display: flex;
             flex-direction: column;
             height: 260mm;
             box-sizing: border-box;
-            background: #ffffff;
+            background: #fff;
         }
         .header {
             display: flex;
             justify-content: space-between;
             align-items: center;
-            border-bottom: 3px solid #1a365d;
+            border-bottom: 3px solid var(--navy);
             padding-bottom: 15px;
             margin-bottom: 20px;
         }
-        .header-left {
-            display: flex;
-            align-items: center;
-            gap: 20px;
-        }
-        .logo-senai {
-            height: 45px;
-            object-fit: contain;
-        }
+        .header-left { display: flex; align-items: center; gap: 20px; }
+        .logo-senai  { height: 45px; object-fit: contain; }
         .title-area h1 {
-            margin: 0;
-            font-size: 28px;
-            color: #1a365d;
-            text-transform: uppercase;
-            letter-spacing: 1px;
+            margin: 0; font-size: 28px; color: var(--navy);
+            text-transform: uppercase; letter-spacing: 1px;
         }
-        .title-area p {
-            margin: 5px 0 0 0;
-            font-size: 14px;
-            color: #7f8c8d;
-        }
-        .meta-area {
-            display: flex;
-            gap: 25px;
-            align-items: center;
-        }
-        .meta-box {
-            font-size: 16px;
-            font-weight: bold;
-        }
+        .title-area p { margin: 5px 0 0; font-size: 14px; color: var(--gray); }
+        .meta-area { display: flex; gap: 25px; align-items: center; }
+        .meta-box { font-size: 16px; font-weight: bold; }
         .meta-box input[type="text"] {
-            border: none;
-            border-bottom: 2px solid #2c3e50;
-            width: 200px;
-            font-size: 16px;
-            padding: 3px;
-            outline: none;
+            border: none; border-bottom: 2px solid #2c3e50;
+            width: 200px; font-size: 16px; padding: 3px; outline: none;
         }
         .checkbox-group {
-            display: flex;
-            gap: 15px;
-            background: #f8f9fa;
-            padding: 10px;
-            border-radius: 6px;
-            border: 1px solid #e2e8f0;
+            display: flex; gap: 15px; background: #f8f9fa;
+            padding: 10px; border-radius: 6px; border: 1px solid #e2e8f0;
         }
-        .checkbox-item {
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            font-size: 13px;
-        }
+        .checkbox-item { display: flex; align-items: center; gap: 5px; font-size: 13px; }
+
         .grid-container {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -130,662 +489,874 @@
         }
         .card {
             border: 2px dashed #cbd5e1;
-            border-radius: 6px;
-            padding: 15px;
-            display: flex;
-            flex-direction: column;
-            background-color: #ffffff;
+            border-radius: 6px; padding: 15px;
+            display: flex; flex-direction: column; background: #fff;
         }
         .card-title {
-            font-size: 16px;
-            font-weight: bold;
-            color: #1a365d;
-            margin-bottom: 5px;
-            text-transform: uppercase;
-            border-bottom: 1px solid #edf2f7;
-            padding-bottom: 5px;
+            font-size: 16px; font-weight: bold; color: var(--navy);
+            margin-bottom: 5px; text-transform: uppercase;
+            border-bottom: 1px solid #edf2f7; padding-bottom: 5px;
         }
         .card-instruction {
-            font-size: 12px;
-            color: #718096;
-            font-style: italic;
-            margin-bottom: 8px;
+            font-size: 12px; color: #718096; font-style: italic; margin-bottom: 8px;
         }
-        .card-content {
-            flex-grow: 1;
-            display: flex;
-            flex-direction: column;
-        }
-        /* ── TEXTAREA nos quadrantes 1, 2 e 3 ── */
+        .card-content { flex-grow: 1; display: flex; flex-direction: column; }
         .card-content textarea {
-            flex-grow: 1;
-            width: 100%;
-            border: 1px solid #e2e8f0;
-            border-radius: 4px;
-            padding: 8px;
-            font-size: 13px;
-            font-family: 'Segoe UI', Helvetica, Arial, sans-serif;
-            color: #2c3e50;
-            resize: none;
-            outline: none;
-            box-sizing: border-box;
-            background: #fafafa;
-            transition: border-color .2s;
+            flex-grow: 1; width: 100%;
+            border: 1px solid #e2e8f0; border-radius: 4px;
+            padding: 8px; font-size: 13px; font-family: inherit;
+            color: #2c3e50; resize: none; outline: none;
+            background: #fafafa; transition: border-color .2s;
         }
-        .card-content textarea:focus { border-color: #1a365d; background: #fff; }
-        .action-options {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-            margin-top: 5px;
-        }
+        .card-content textarea:focus { border-color: var(--navy); background: #fff; }
+        .card-content textarea:disabled { background: #f7fafc; color: #4a5568; cursor: not-allowed; }
+
+        .action-options { display: flex; flex-direction: column; gap: 8px; margin-top: 5px; }
         .action-item {
-            display: flex;
-            align-items: flex-start;
-            gap: 8px;
-            font-size: 12px;
-            line-height: 1.3;
+            display: flex; align-items: flex-start; gap: 8px;
+            font-size: 12px; line-height: 1.3;
         }
-        .action-item input[type="checkbox"] {
-            transform: scale(1.2);
-            margin-top: 2px;
-        }
+        .action-item input[type="checkbox"] { transform: scale(1.2); margin-top: 2px; }
 
-
-        /* ── BOTÃO SALVAR PDF ── */
-        .btn-save-pdf {
-            margin-left: 30px;
-            background: #e53e3e;
-            border: 2px solid #c53030;
-            border-bottom: none;
-            border-radius: 8px 8px 0 0;
-            padding: 10px 22px;
-            font-size: 14px;
-            font-weight: 700;
-            cursor: pointer;
-            color: #ffffff;
-            font-family: 'Segoe UI', Helvetica, Arial, sans-serif;
-            transition: background .2s;
-            display: flex;
-            align-items: center;
-            gap: 7px;
-        }
-        .btn-save-pdf:hover { background: #c53030; }
-        .btn-save-pdf:disabled { background: #999; border-color: #888; cursor: not-allowed; }
-
-        /* overlay de loading */
+        /* Loading overlay */
         #pdf-loading {
-            display: none;
-            position: fixed;
-            inset: 0;
-            background: rgba(0,0,0,.55);
-            z-index: 9999;
-            align-items: center;
-            justify-content: center;
-            flex-direction: column;
-            gap: 16px;
-            color: #fff;
-            font-size: 18px;
-            font-family: 'Segoe UI', Helvetica, Arial, sans-serif;
+            display: none; position: fixed; inset: 0;
+            background: rgba(0,0,0,.6); z-index: 9999;
+            align-items: center; justify-content: center;
+            flex-direction: column; gap: 16px;
+            color: #fff; font-size: 18px; font-family: inherit;
         }
         #pdf-loading.show { display: flex; }
         .spinner {
             width: 48px; height: 48px;
             border: 5px solid rgba(255,255,255,.3);
-            border-top-color: #fff;
-            border-radius: 50%;
+            border-top-color: #fff; border-radius: 50%;
             animation: spin .8s linear infinite;
         }
         @keyframes spin { to { transform: rotate(360deg); } }
 
-
-        
+        /* Toast */
+        #toast {
+            position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%);
+            background: #2d3748; color: #fff; border-radius: 8px;
+            padding: 12px 24px; font-size: .9rem; font-weight: 600;
+            z-index: 9998; opacity: 0; transition: opacity .3s;
+            pointer-events: none; white-space: nowrap;
+        }
+        #toast.show { opacity: 1; }
 
         @media print {
-            body { background: #fff; }
-            .tab-nav { display: none; }
+            #page-home, .tab-nav, .btn-save-pdf { display: none !important; }
             .canvas-page { display: block !important; page-break-after: always; }
             .canvas-page:last-child { page-break-after: avoid; }
         }
     </style>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
 <body>
 
-<!-- NAVEGAÇÃO -->
-<div class="tab-nav">
-    <button class="tab-btn active" onclick="showTeam(1)" data-team-name="Equipe 1">Equipe 1</button>
-    <button class="tab-btn"        onclick="showTeam(2)">Equipe 2</button>
-    <button class="tab-btn"        onclick="showTeam(3)">Equipe 3</button>
-    <button class="tab-btn"        onclick="showTeam(4)">Equipe 4</button>
-    <button class="tab-btn"        onclick="showTeam(5)">Equipe 5</button>
-    <button class="btn-save-pdf" onclick="savePDF()">⬇️ Salvar PDF</button>
-</div>
+<!-- ════════════ TOAST ════════════ -->
+<div id="toast"></div>
 
-
-<!-- ══════════════ EQUIPE 1 ══════════════ -->
-<div class="canvas-page active" id="team-1">
-    <div class="canvas-wrapper">
-
-        <!-- CABEÇALHO -->
-        <div class="header">
-            <div class="header-left">
-                <img src="https://i.imgur.com/lO0qBOw.jpeg" alt="Logo SENAI" class="logo-senai">
-                <div class="title-area">
-                    <h1>Canvas da Jornada SGE</h1>
-                    <p>Oficina de Alinhamento, Processos e Inovação Educacional</p>
-                </div>
-            </div>
-            <div class="meta-area">
-                <div class="meta-box">
-                    EQUIPE: <input type="text" placeholder="Nome ">
-                </div>
-                <div class="checkbox-group">
-                    <div class="checkbox-item"><input type="checkbox"> Captação/Ingresso</div>
-                    <div class="checkbox-item"><input type="checkbox"> V. Acadêmica</div>
-                    <div class="checkbox-item"><input type="checkbox"> Financeiro</div>
-                    <div class="checkbox-item"><input type="checkbox"> Certificação</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- QUADRANTES DO CANVAS -->
-        <div class="grid-container">
-
-            <!-- QUADRANTE 1 -->
-            <div class="card">
-                <div class="card-title">1. O Nó do Processo (O Problema)</div>
-                <div class="card-instruction">Qual é a maior dificuldade, lentidão ou retrabalho que a unidade enfrenta hoje no (SGE ou demais ferramentas) nessa fase?</div>
-                <div class="card-content">
-                    <textarea placeholder="Descreva o problema..."></textarea>
-                </div>
-            </div>
-
-            <!-- QUADRANTE 2 -->
-            <div class="card">
-                <div class="card-title">2. O Impacto na Ponta (A Consequência)</div>
-                <div class="card-instruction">Como essa situação atrapalha a rotina da unidade (secretaria, supervisão ou atendimento) ou prejudica a experiência do aluno/cliente?</div>
-                <div class="card-content">
-                    <textarea placeholder="Descreva o impacto..."></textarea>
-                </div>
-            </div>
-
-            <!-- QUADRANTE 3 -->
-            <div class="card">
-                <div class="card-title">3. A Solução Prática (A Ideia)</div>
-                <div class="card-instruction">Como podemos resolver ou mitigar essa dor de forma viável usando o ecossistema atual ou ajustando o fluxo?</div>
-                <div class="card-content">
-                    <textarea placeholder="Descreva a solução..."></textarea>
-                </div>
-            </div>
-
-            <!-- QUADRANTE 4 -->
-            <div class="card">
-                <div class="card-title">4. TIPO DE SOLUÇÃO (O FORMATO)</div>
-                <div class="card-instruction">De quem depende a implementação dessa melhoria? Marque as opções e detalhe abaixo:</div>
-                <div class="card-content">
-                    <div class="action-options">
-                        <div class="action-item"><input type="checkbox"> <span><strong>Parametrização / Ajuste no Sistema</strong> (COEPT/NTE)</span></div>
-                        <div class="action-item"><input type="checkbox"> <span><strong>Mudança de Fluxo Interno</strong> (Rotina da própria Unidade)</span></div>
-                        <div class="action-item"><input type="checkbox"> <span><strong>Capacitação / Treinamento / Workshop</strong> (Objetivo de alinhamento com a equipe e padronização de processos)</span></div>
-                        <div class="action-item"><input type="checkbox"> <span><strong>Criação de uma nova ferramenta ou automação</strong> (Adotar uma nova solução ou automatizar alguma tarefa repetitiva)</span></div>
-                        <div class="action-item"><input type="checkbox"> <span><strong>Melhorar os alertas, avisos e lembretes para o aluno</strong> (Criar comunicações mais claras, e-mails ou mensagens para o aluno)</span></div>
-                        <div class="action-item"><input type="checkbox"> <span><strong>Criar guias visuais, manuais ou instruções passo a passo</strong> (Desenvolver cartilhas, vídeos curtos ou fluxogramas simples para que a equipe ou o aluno saibam exatamente como fazer o processo sem errar)</span></div>
-                        <div class="action-item"><input type="checkbox"> <span><strong>Melhorar ou adicionar uma nova função nos sistemas atuais</strong> (EX: Mudar uma tela, criar um aviso visual ou melhorar um portal que o aluno ou a secretaria já utilizam no dia a dia)</span></div>
-                    </div>
-                </div>
-            </div>
-
-        </div>
-    </div>
-</div>
-
-<!-- ══════════════ EQUIPE 2 ══════════════ -->
-<div class="canvas-page " id="team-2">
-    <div class="canvas-wrapper">
-
-        <!-- CABEÇALHO -->
-        <div class="header">
-            <div class="header-left">
-                <img src="https://i.imgur.com/lO0qBOw.jpeg" alt="Logo SENAI" class="logo-senai">
-                <div class="title-area">
-                    <h1>Canvas da Jornada SGE</h1>
-                    <p>Oficina de Alinhamento, Processos e Inovação Educacional</p>
-                </div>
-            </div>
-            <div class="meta-area">
-                <div class="meta-box">
-                    EQUIPE: <input type="text" placeholder="Nome ">
-                </div>
-                <div class="checkbox-group">
-                    <div class="checkbox-item"><input type="checkbox"> Captação/Ingresso</div>
-                    <div class="checkbox-item"><input type="checkbox"> V. Acadêmica</div>
-                    <div class="checkbox-item"><input type="checkbox"> Financeiro</div>
-                    <div class="checkbox-item"><input type="checkbox"> Certificação</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- QUADRANTES DO CANVAS -->
-        <div class="grid-container">
-
-            <!-- QUADRANTE 1 -->
-            <div class="card">
-                <div class="card-title">1. O Nó do Processo (O Problema)</div>
-                <div class="card-instruction">Qual é a maior dificuldade, lentidão ou retrabalho que a unidade enfrenta hoje no (SGE ou demais ferramentas) nessa fase?</div>
-                <div class="card-content">
-                    <textarea placeholder="Descreva o problema..."></textarea>
-                </div>
-            </div>
-
-            <!-- QUADRANTE 2 -->
-            <div class="card">
-                <div class="card-title">2. O Impacto na Ponta (A Consequência)</div>
-                <div class="card-instruction">Como essa situação atrapalha a rotina da unidade (secretaria, supervisão ou atendimento) ou prejudica a experiência do aluno/cliente?</div>
-                <div class="card-content">
-                    <textarea placeholder="Descreva o impacto..."></textarea>
-                </div>
-            </div>
-
-            <!-- QUADRANTE 3 -->
-            <div class="card">
-                <div class="card-title">3. A Solução Prática (A Ideia)</div>
-                <div class="card-instruction">Como podemos resolver ou mitigar essa dor de forma viável usando o ecossistema atual ou ajustando o fluxo?</div>
-                <div class="card-content">
-                    <textarea placeholder="Descreva a solução..."></textarea>
-                </div>
-            </div>
-
-            <!-- QUADRANTE 4 -->
-            <div class="card">
-                <div class="card-title">4. TIPO DE SOLUÇÃO (O FORMATO)</div>
-                <div class="card-instruction">De quem depende a implementação dessa melhoria? Marque as opções e detalhe abaixo:</div>
-                <div class="card-content">
-                    <div class="action-options">
-                        <div class="action-item"><input type="checkbox"> <span><strong>Parametrização / Ajuste no Sistema</strong> (COEPT/NTE)</span></div>
-                        <div class="action-item"><input type="checkbox"> <span><strong>Mudança de Fluxo Interno</strong> (Rotina da própria Unidade)</span></div>
-                        <div class="action-item"><input type="checkbox"> <span><strong>Capacitação / Treinamento / Workshop</strong> (Objetivo de alinhamento com a equipe e padronização de processos)</span></div>
-                        <div class="action-item"><input type="checkbox"> <span><strong>Criação de uma nova ferramenta ou automação</strong> (Adotar uma nova solução ou automatizar alguma tarefa repetitiva)</span></div>
-                        <div class="action-item"><input type="checkbox"> <span><strong>Melhorar os alertas, avisos e lembretes para o aluno</strong> (Criar comunicações mais claras, e-mails ou mensagens para o aluno)</span></div>
-                        <div class="action-item"><input type="checkbox"> <span><strong>Criar guias visuais, manuais ou instruções passo a passo</strong> (Desenvolver cartilhas, vídeos curtos ou fluxogramas simples para que a equipe ou o aluno saibam exatamente como fazer o processo sem errar)</span></div>
-                        <div class="action-item"><input type="checkbox"> <span><strong>Melhorar ou adicionar uma nova função nos sistemas atuais</strong> (EX: Mudar uma tela, criar um aviso visual ou melhorar um portal que o aluno ou a secretaria já utilizam no dia a dia)</span></div>
-                    </div>
-                </div>
-            </div>
-
-        </div>
-    </div>
-</div>
-
-<!-- ══════════════ EQUIPE 3 ══════════════ -->
-<div class="canvas-page " id="team-3">
-    <div class="canvas-wrapper">
-
-        <!-- CABEÇALHO -->
-        <div class="header">
-            <div class="header-left">
-                <img src="https://i.imgur.com/lO0qBOw.jpeg" alt="Logo SENAI" class="logo-senai">
-                <div class="title-area">
-                    <h1>Canvas da Jornada SGE</h1>
-                    <p>Oficina de Alinhamento, Processos e Inovação Educacional</p>
-                </div>
-            </div>
-            <div class="meta-area">
-                <div class="meta-box">
-                    EQUIPE: <input type="text" placeholder="Nome ">
-                </div>
-                <div class="checkbox-group">
-                    <div class="checkbox-item"><input type="checkbox"> Captação/Ingresso</div>
-                    <div class="checkbox-item"><input type="checkbox"> V. Acadêmica</div>
-                    <div class="checkbox-item"><input type="checkbox"> Financeiro</div>
-                    <div class="checkbox-item"><input type="checkbox"> Certificação</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- QUADRANTES DO CANVAS -->
-        <div class="grid-container">
-
-            <!-- QUADRANTE 1 -->
-            <div class="card">
-                <div class="card-title">1. O Nó do Processo (O Problema)</div>
-                <div class="card-instruction">Qual é a maior dificuldade, lentidão ou retrabalho que a unidade enfrenta hoje no (SGE ou demais ferramentas) nessa fase?</div>
-                <div class="card-content">
-                    <textarea placeholder="Descreva o problema..."></textarea>
-                </div>
-            </div>
-
-            <!-- QUADRANTE 2 -->
-            <div class="card">
-                <div class="card-title">2. O Impacto na Ponta (A Consequência)</div>
-                <div class="card-instruction">Como essa situação atrapalha a rotina da unidade (secretaria, supervisão ou atendimento) ou prejudica a experiência do aluno/cliente?</div>
-                <div class="card-content">
-                    <textarea placeholder="Descreva o impacto..."></textarea>
-                </div>
-            </div>
-
-            <!-- QUADRANTE 3 -->
-            <div class="card">
-                <div class="card-title">3. A Solução Prática (A Ideia)</div>
-                <div class="card-instruction">Como podemos resolver ou mitigar essa dor de forma viável usando o ecossistema atual ou ajustando o fluxo?</div>
-                <div class="card-content">
-                    <textarea placeholder="Descreva a solução..."></textarea>
-                </div>
-            </div>
-
-            <!-- QUADRANTE 4 -->
-            <div class="card">
-                <div class="card-title">4. TIPO DE SOLUÇÃO (O FORMATO)</div>
-                <div class="card-instruction">De quem depende a implementação dessa melhoria? Marque as opções e detalhe abaixo:</div>
-                <div class="card-content">
-                    <div class="action-options">
-                        <div class="action-item"><input type="checkbox"> <span><strong>Parametrização / Ajuste no Sistema</strong> (COEPT/NTE)</span></div>
-                        <div class="action-item"><input type="checkbox"> <span><strong>Mudança de Fluxo Interno</strong> (Rotina da própria Unidade)</span></div>
-                        <div class="action-item"><input type="checkbox"> <span><strong>Capacitação / Treinamento / Workshop</strong> (Objetivo de alinhamento com a equipe e padronização de processos)</span></div>
-                        <div class="action-item"><input type="checkbox"> <span><strong>Criação de uma nova ferramenta ou automação</strong> (Adotar uma nova solução ou automatizar alguma tarefa repetitiva)</span></div>
-                        <div class="action-item"><input type="checkbox"> <span><strong>Melhorar os alertas, avisos e lembretes para o aluno</strong> (Criar comunicações mais claras, e-mails ou mensagens para o aluno)</span></div>
-                        <div class="action-item"><input type="checkbox"> <span><strong>Criar guias visuais, manuais ou instruções passo a passo</strong> (Desenvolver cartilhas, vídeos curtos ou fluxogramas simples para que a equipe ou o aluno saibam exatamente como fazer o processo sem errar)</span></div>
-                        <div class="action-item"><input type="checkbox"> <span><strong>Melhorar ou adicionar uma nova função nos sistemas atuais</strong> (EX: Mudar uma tela, criar um aviso visual ou melhorar um portal que o aluno ou a secretaria já utilizam no dia a dia)</span></div>
-                    </div>
-                </div>
-            </div>
-
-        </div>
-    </div>
-</div>
-
-<!-- ══════════════ EQUIPE 4 ══════════════ -->
-<div class="canvas-page " id="team-4">
-    <div class="canvas-wrapper">
-
-        <!-- CABEÇALHO -->
-        <div class="header">
-            <div class="header-left">
-                <img src="https://i.imgur.com/lO0qBOw.jpeg" alt="Logo SENAI" class="logo-senai">
-                <div class="title-area">
-                    <h1>Canvas da Jornada SGE</h1>
-                    <p>Oficina de Alinhamento, Processos e Inovação Educacional</p>
-                </div>
-            </div>
-            <div class="meta-area">
-                <div class="meta-box">
-                    EQUIPE: <input type="text" placeholder="Nome ">
-                </div>
-                <div class="checkbox-group">
-                    <div class="checkbox-item"><input type="checkbox"> Captação/Ingresso</div>
-                    <div class="checkbox-item"><input type="checkbox"> V. Acadêmica</div>
-                    <div class="checkbox-item"><input type="checkbox"> Financeiro</div>
-                    <div class="checkbox-item"><input type="checkbox"> Certificação</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- QUADRANTES DO CANVAS -->
-        <div class="grid-container">
-
-            <!-- QUADRANTE 1 -->
-            <div class="card">
-                <div class="card-title">1. O Nó do Processo (O Problema)</div>
-                <div class="card-instruction">Qual é a maior dificuldade, lentidão ou retrabalho que a unidade enfrenta hoje no (SGE ou demais ferramentas) nessa fase?</div>
-                <div class="card-content">
-                    <textarea placeholder="Descreva o problema..."></textarea>
-                </div>
-            </div>
-
-            <!-- QUADRANTE 2 -->
-            <div class="card">
-                <div class="card-title">2. O Impacto na Ponta (A Consequência)</div>
-                <div class="card-instruction">Como essa situação atrapalha a rotina da unidade (secretaria, supervisão ou atendimento) ou prejudica a experiência do aluno/cliente?</div>
-                <div class="card-content">
-                    <textarea placeholder="Descreva o impacto..."></textarea>
-                </div>
-            </div>
-
-            <!-- QUADRANTE 3 -->
-            <div class="card">
-                <div class="card-title">3. A Solução Prática (A Ideia)</div>
-                <div class="card-instruction">Como podemos resolver ou mitigar essa dor de forma viável usando o ecossistema atual ou ajustando o fluxo?</div>
-                <div class="card-content">
-                    <textarea placeholder="Descreva a solução..."></textarea>
-                </div>
-            </div>
-
-            <!-- QUADRANTE 4 -->
-            <div class="card">
-                <div class="card-title">4. TIPO DE SOLUÇÃO (O FORMATO)</div>
-                <div class="card-instruction">De quem depende a implementação dessa melhoria? Marque as opções e detalhe abaixo:</div>
-                <div class="card-content">
-                    <div class="action-options">
-                        <div class="action-item"><input type="checkbox"> <span><strong>Parametrização / Ajuste no Sistema</strong> (COEPT/NTE)</span></div>
-                        <div class="action-item"><input type="checkbox"> <span><strong>Mudança de Fluxo Interno</strong> (Rotina da própria Unidade)</span></div>
-                        <div class="action-item"><input type="checkbox"> <span><strong>Capacitação / Treinamento / Workshop</strong> (Objetivo de alinhamento com a equipe e padronização de processos)</span></div>
-                        <div class="action-item"><input type="checkbox"> <span><strong>Criação de uma nova ferramenta ou automação</strong> (Adotar uma nova solução ou automatizar alguma tarefa repetitiva)</span></div>
-                        <div class="action-item"><input type="checkbox"> <span><strong>Melhorar os alertas, avisos e lembretes para o aluno</strong> (Criar comunicações mais claras, e-mails ou mensagens para o aluno)</span></div>
-                        <div class="action-item"><input type="checkbox"> <span><strong>Criar guias visuais, manuais ou instruções passo a passo</strong> (Desenvolver cartilhas, vídeos curtos ou fluxogramas simples para que a equipe ou o aluno saibam exatamente como fazer o processo sem errar)</span></div>
-                        <div class="action-item"><input type="checkbox"> <span><strong>Melhorar ou adicionar uma nova função nos sistemas atuais</strong> (EX: Mudar uma tela, criar um aviso visual ou melhorar um portal que o aluno ou a secretaria já utilizam no dia a dia)</span></div>
-                    </div>
-                </div>
-            </div>
-
-        </div>
-    </div>
-</div>
-
-<!-- ══════════════ EQUIPE 5 ══════════════ -->
-<div class="canvas-page " id="team-5">
-    <div class="canvas-wrapper">
-
-        <!-- CABEÇALHO -->
-        <div class="header">
-            <div class="header-left">
-                <img src="https://i.imgur.com/lO0qBOw.jpeg" alt="Logo SENAI" class="logo-senai">
-                <div class="title-area">
-                    <h1>Canvas da Jornada SGE</h1>
-                    <p>Oficina de Alinhamento, Processos e Inovação Educacional</p>
-                </div>
-            </div>
-            <div class="meta-area">
-                <div class="meta-box">
-                    EQUIPE: <input type="text" placeholder="Nome ">
-                </div>
-                <div class="checkbox-group">
-                    <div class="checkbox-item"><input type="checkbox"> Captação/Ingresso</div>
-                    <div class="checkbox-item"><input type="checkbox"> V. Acadêmica</div>
-                    <div class="checkbox-item"><input type="checkbox"> Financeiro</div>
-                    <div class="checkbox-item"><input type="checkbox"> Certificação</div>
-                </div>
-            </div>
-        </div>
-
-        <!-- QUADRANTES DO CANVAS -->
-        <div class="grid-container">
-
-            <!-- QUADRANTE 1 -->
-            <div class="card">
-                <div class="card-title">1. O Nó do Processo (O Problema)</div>
-                <div class="card-instruction">Qual é a maior dificuldade, lentidão ou retrabalho que a unidade enfrenta hoje no (SGE ou demais ferramentas) nessa fase?</div>
-                <div class="card-content">
-                    <textarea placeholder="Descreva o problema..."></textarea>
-                </div>
-            </div>
-
-            <!-- QUADRANTE 2 -->
-            <div class="card">
-                <div class="card-title">2. O Impacto na Ponta (A Consequência)</div>
-                <div class="card-instruction">Como essa situação atrapalha a rotina da unidade (secretaria, supervisão ou atendimento) ou prejudica a experiência do aluno/cliente?</div>
-                <div class="card-content">
-                    <textarea placeholder="Descreva o impacto..."></textarea>
-                </div>
-            </div>
-
-            <!-- QUADRANTE 3 -->
-            <div class="card">
-                <div class="card-title">3. A Solução Prática (A Ideia)</div>
-                <div class="card-instruction">Como podemos resolver ou mitigar essa dor de forma viável usando o ecossistema atual ou ajustando o fluxo?</div>
-                <div class="card-content">
-                    <textarea placeholder="Descreva a solução..."></textarea>
-                </div>
-            </div>
-
-            <!-- QUADRANTE 4 -->
-            <div class="card">
-                <div class="card-title">4. TIPO DE SOLUÇÃO (O FORMATO)</div>
-                <div class="card-instruction">De quem depende a implementação dessa melhoria? Marque as opções e detalhe abaixo:</div>
-                <div class="card-content">
-                    <div class="action-options">
-                        <div class="action-item"><input type="checkbox"> <span><strong>Parametrização / Ajuste no Sistema</strong> (COEPT/NTE)</span></div>
-                        <div class="action-item"><input type="checkbox"> <span><strong>Mudança de Fluxo Interno</strong> (Rotina da própria Unidade)</span></div>
-                        <div class="action-item"><input type="checkbox"> <span><strong>Capacitação / Treinamento / Workshop</strong> (Objetivo de alinhamento com a equipe e padronização de processos)</span></div>
-                        <div class="action-item"><input type="checkbox"> <span><strong>Criação de uma nova ferramenta ou automação</strong> (Adotar uma nova solução ou automatizar alguma tarefa repetitiva)</span></div>
-                        <div class="action-item"><input type="checkbox"> <span><strong>Melhorar os alertas, avisos e lembretes para o aluno</strong> (Criar comunicações mais claras, e-mails ou mensagens para o aluno)</span></div>
-                        <div class="action-item"><input type="checkbox"> <span><strong>Criar guias visuais, manuais ou instruções passo a passo</strong> (Desenvolver cartilhas, vídeos curtos ou fluxogramas simples para que a equipe ou o aluno saibam exatamente como fazer o processo sem errar)</span></div>
-                        <div class="action-item"><input type="checkbox"> <span><strong>Melhorar ou adicionar uma nova função nos sistemas atuais</strong> (EX: Mudar uma tela, criar um aviso visual ou melhorar um portal que o aluno ou a secretaria já utilizam no dia a dia)</span></div>
-                    </div>
-                </div>
-            </div>
-
-        </div>
-    </div>
-</div>
-
-
-<script>
-    // ── Conta caracteres + checkboxes de uma página ──
-    function countData(pageEl) {
-        let total = 0;
-        pageEl.querySelectorAll('textarea').forEach(ta => {
-            total += ta.value.trim().length;
-        });
-        pageEl.querySelectorAll('input[type="text"]').forEach(inp => {
-            total += inp.value.trim().length;
-        });
-        pageEl.querySelectorAll('input[type="checkbox"]:checked').forEach(() => {
-            total += 10; // peso por checkbox marcado
-        });
-        return total;
-    }
-
-    // ── Atualiza badges e destaque de maior preenchimento ──
-    function updateBadges() {
-        const pages   = document.querySelectorAll('.canvas-page');
-        const buttons = document.querySelectorAll('.tab-btn');
-        const counts  = [];
-
-        pages.forEach((page, i) => {
-            counts.push(countData(page));
-        });
-
-        const maxCount = Math.max(...counts);
-
-        buttons.forEach((btn, i) => {
-            const badge = btn.querySelector('.tab-badge');
-            const count = counts[i];
-
-            // Remove estado anterior
-            btn.classList.remove('most-data-tab');
-            badge.classList.remove('has-data', 'most-data');
-
-            if (count > 0) {
-                badge.classList.add('has-data');
-                badge.textContent = count > 999 ? '999+' : count;
-            } else {
-                badge.textContent = '';
-            }
-
-            if (count === maxCount && maxCount > 0) {
-                badge.classList.add('most-data');
-                btn.classList.add('most-data-tab');
-            }
-        });
-
-    }
-
-
-    // ── Troca de aba ──
-    function showTeam(n) {
-        document.querySelectorAll('.canvas-page').forEach(el => el.classList.remove('active'));
-        document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
-        document.getElementById('team-' + n).classList.add('active');
-        document.querySelectorAll('.tab-btn')[n - 1].classList.add('active');
-        updateBadges();
-    }
-
-    // ── Escuta mudanças em todos os campos ──
-    function attachListeners() {
-        document.querySelectorAll('textarea, input[type="text"], input[type="checkbox"]').forEach(el => {
-            el.addEventListener('input', updateBadges);
-            el.addEventListener('change', updateBadges);
-        });
-    }
-
-    document.addEventListener('DOMContentLoaded', () => {
-        attachListeners();
-        updateBadges();
-    });
-</script>
-
-
-
+<!-- ════════════ LOADING PDF ════════════ -->
 <div id="pdf-loading">
     <div class="spinner"></div>
     <span id="pdf-loading-text">Gerando PDF...</span>
 </div>
 
+<!-- ════════════════════════════════════
+     PÁGINA HOME
+════════════════════════════════════ -->
+<div id="page-home">
+    <div class="home-hero">
+        <div class="logo-wrap">
+            <img src="https://i.imgur.com/lO0qBOw.jpeg" alt="Logo SENAI">
+        </div>
+        <h1>Canvas da Jornada SGE</h1>
+        <h2>Oficina de Alinhamento, Processos e Inovação Educacional</h2>
+    </div>
+
+    <div class="home-body">
+
+        <p class="section-title">📋 O que vamos fazer</p>
+        <div class="info-grid">
+            <div class="info-card">
+                <div class="ic-icon">🎯</div>
+                <h3>Objetivo</h3>
+                <p>Mapear os principais nós de processo no SGE, entender o impacto gerado e construir soluções práticas em equipe de forma colaborativa.</p>
+            </div>
+            <div class="info-card">
+                <div class="ic-icon">👥</div>
+                <h3>Dinâmica</h3>
+                <p>Cada equipe recebe um número de 1 a 5 e preenche seu próprio Canvas com o problema identificado, o impacto e a solução proposta.</p>
+            </div>
+            <div class="info-card">
+                <div class="ic-icon">🗂️</div>
+                <h3>Canvas</h3>
+                <p>O Canvas tem 4 quadrantes: O Nó do Processo, O Impacto na Ponta, A Solução Prática e o Tipo de Solução. Tudo salvo em tempo real.</p>
+            </div>
+            <div class="info-card">
+                <div class="ic-icon">⚡</div>
+                <h3>Tempo Real</h3>
+                <p>As escolhas de equipe são sincronizadas ao vivo. Se a Equipe 3 já foi escolhida por alguém, ela fica bloqueada para os demais.</p>
+            </div>
+        </div>
+
+        <p class="section-title">📱 Acesse pelo celular</p>
+        <div class="access-row">
+            <div class="qr-wrap">
+                <div id="qrcode"></div>
+                <p>Aponte a câmera<br>para acessar</p>
+            </div>
+            <div class="access-info">
+                <h3>Compartilhe com sua equipe</h3>
+                <p>Todos os participantes devem acessar o mesmo link. Ao entrar, cada equipe escolhe seu número — a sincronização é automática.</p>
+                <div class="url-badge" id="url-display">carregando...</div>
+            </div>
+        </div>
+
+        <div class="cta-wrap">
+            <button class="btn-primary" onclick="openTeamModal()">
+                🚀 Entrar no Canvas
+            </button>
+            <p>Você será redirecionado para escolher sua equipe</p>
+        </div>
+
+    </div>
+</div>
+
+<!-- ════════════════════════════════════
+     MODAL SELEÇÃO DE EQUIPE
+════════════════════════════════════ -->
+<div class="modal-overlay" id="modal-team">
+    <div class="modal-box">
+        <h2>👥 Escolha sua Equipe</h2>
+        <p class="modal-sub">Selecione o número e informe o nome da sua equipe. Esta escolha é definitiva.</p>
+
+        <div class="team-grid" id="team-grid">
+            <!-- gerado via JS -->
+        </div>
+
+        <div class="modal-error" id="modal-error">Selecione um número de equipe disponível.</div>
+
+        <div class="modal-field">
+            <label for="team-name-input">Nome da Equipe</label>
+            <input type="text" id="team-name-input" placeholder="Ex: Turma A, Grupo Financeiro...">
+        </div>
+
+        <div class="modal-actions">
+            <button class="btn-cancel" onclick="closeTeamModal()">Cancelar</button>
+            <button class="btn-confirm" id="btn-confirm-team" onclick="confirmTeam()">Confirmar</button>
+        </div>
+    </div>
+</div>
+
+<!-- ════════════════════════════════════
+     PÁGINA CANVAS
+════════════════════════════════════ -->
+<div id="page-canvas">
+
+    <div class="tab-nav" id="tab-nav">
+        <!-- abas geradas via JS -->
+        <div class="tab-nav-right">
+            <button class="btn-save-pdf" onclick="savePDF()">⬇️ Salvar PDF</button>
+        </div>
+    </div>
+
+    <div class="canvas-page active" id="team-1">
+        <div class="canvas-wrapper" id="canvas-wrapper-1">
+            <div class="header">
+                <div class="header-left">
+                    <img src="https://i.imgur.com/lO0qBOw.jpeg" alt="Logo SENAI" class="logo-senai">
+                    <div class="title-area">
+                        <h1>Canvas da Jornada SGE</h1>
+                        <p>Oficina de Alinhamento, Processos e Inovação Educacional</p>
+                    </div>
+                </div>
+                <div class="meta-area">
+                    <div class="meta-box">
+                        EQUIPE <span style="color:var(--navy);font-size:20px">#1</span>
+                        — <input type="text" id="team-name-1" placeholder="Nome da equipe" disabled>
+                    </div>
+                    <div class="checkbox-group">
+                        <div class="checkbox-item"><input type="checkbox" id="chk-1-1" disabled> Captação/Ingresso</div>
+                        <div class="checkbox-item"><input type="checkbox" id="chk-1-2" disabled> V. Acadêmica</div>
+                        <div class="checkbox-item"><input type="checkbox" id="chk-1-3" disabled> Financeiro</div>
+                        <div class="checkbox-item"><input type="checkbox" id="chk-1-4" disabled> Certificação</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid-container">
+                <div class="card">
+                    <div class="card-title">1. O Nó do Processo (O Problema)</div>
+                    <div class="card-instruction">Qual é a maior dificuldade, lentidão ou retrabalho que a unidade enfrenta hoje no (SGE ou demais ferramentas) nessa fase?</div>
+                    <div class="card-content">
+                        <textarea id="ta-1-no" placeholder="Descreva o problema..." disabled></textarea>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-title">2. O Impacto na Ponta (A Consequência)</div>
+                    <div class="card-instruction">Como essa situação atrapalha a rotina da unidade (secretaria, supervisão ou atendimento) ou prejudica a experiência do aluno/cliente?</div>
+                    <div class="card-content">
+                        <textarea id="ta-1-impacto" placeholder="Descreva o impacto..." disabled></textarea>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-title">3. A Solução Prática (A Ideia)</div>
+                    <div class="card-instruction">Como podemos resolver ou mitigar essa dor de forma viável usando o ecossistema atual ou ajustando o fluxo?</div>
+                    <div class="card-content">
+                        <textarea id="ta-1-solucao" placeholder="Descreva a solução..." disabled></textarea>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-title">4. TIPO DE SOLUÇÃO (O FORMATO)</div>
+                    <div class="card-instruction">De quem depende a implementação? Marque as opções:</div>
+                    <div class="card-content">
+                        <div class="action-options">
+                            <div class="action-item"><input type="checkbox" id="sol-1-1" disabled> <span><strong>Parametrização / Ajuste no Sistema</strong> (COEPT/NTE)</span></div>
+                            <div class="action-item"><input type="checkbox" id="sol-1-2" disabled> <span><strong>Mudança de Fluxo Interno</strong> (Rotina da própria Unidade)</span></div>
+                            <div class="action-item"><input type="checkbox" id="sol-1-3" disabled> <span><strong>Capacitação / Treinamento / Workshop</strong> (Alinhamento da equipe e padronização de processos)</span></div>
+                            <div class="action-item"><input type="checkbox" id="sol-1-4" disabled> <span><strong>Criação de nova ferramenta ou automação</strong> (Adotar nova solução ou automatizar tarefa repetitiva)</span></div>
+                            <div class="action-item"><input type="checkbox" id="sol-1-5" disabled> <span><strong>Melhorar alertas e lembretes para o aluno</strong> (Comunicações mais claras, e-mails ou mensagens)</span></div>
+                            <div class="action-item"><input type="checkbox" id="sol-1-6" disabled> <span><strong>Criar guias visuais, manuais ou passo a passo</strong> (Cartilhas, vídeos curtos ou fluxogramas)</span></div>
+                            <div class="action-item"><input type="checkbox" id="sol-1-7" disabled> <span><strong>Melhorar ou adicionar função nos sistemas atuais</strong> (Mudar tela, criar aviso visual ou melhorar portal)</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="canvas-page " id="team-2">
+        <div class="canvas-wrapper" id="canvas-wrapper-2">
+            <div class="header">
+                <div class="header-left">
+                    <img src="https://i.imgur.com/lO0qBOw.jpeg" alt="Logo SENAI" class="logo-senai">
+                    <div class="title-area">
+                        <h1>Canvas da Jornada SGE</h1>
+                        <p>Oficina de Alinhamento, Processos e Inovação Educacional</p>
+                    </div>
+                </div>
+                <div class="meta-area">
+                    <div class="meta-box">
+                        EQUIPE <span style="color:var(--navy);font-size:20px">#2</span>
+                        — <input type="text" id="team-name-2" placeholder="Nome da equipe" disabled>
+                    </div>
+                    <div class="checkbox-group">
+                        <div class="checkbox-item"><input type="checkbox" id="chk-2-1" disabled> Captação/Ingresso</div>
+                        <div class="checkbox-item"><input type="checkbox" id="chk-2-2" disabled> V. Acadêmica</div>
+                        <div class="checkbox-item"><input type="checkbox" id="chk-2-3" disabled> Financeiro</div>
+                        <div class="checkbox-item"><input type="checkbox" id="chk-2-4" disabled> Certificação</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid-container">
+                <div class="card">
+                    <div class="card-title">1. O Nó do Processo (O Problema)</div>
+                    <div class="card-instruction">Qual é a maior dificuldade, lentidão ou retrabalho que a unidade enfrenta hoje no (SGE ou demais ferramentas) nessa fase?</div>
+                    <div class="card-content">
+                        <textarea id="ta-2-no" placeholder="Descreva o problema..." disabled></textarea>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-title">2. O Impacto na Ponta (A Consequência)</div>
+                    <div class="card-instruction">Como essa situação atrapalha a rotina da unidade (secretaria, supervisão ou atendimento) ou prejudica a experiência do aluno/cliente?</div>
+                    <div class="card-content">
+                        <textarea id="ta-2-impacto" placeholder="Descreva o impacto..." disabled></textarea>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-title">3. A Solução Prática (A Ideia)</div>
+                    <div class="card-instruction">Como podemos resolver ou mitigar essa dor de forma viável usando o ecossistema atual ou ajustando o fluxo?</div>
+                    <div class="card-content">
+                        <textarea id="ta-2-solucao" placeholder="Descreva a solução..." disabled></textarea>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-title">4. TIPO DE SOLUÇÃO (O FORMATO)</div>
+                    <div class="card-instruction">De quem depende a implementação? Marque as opções:</div>
+                    <div class="card-content">
+                        <div class="action-options">
+                            <div class="action-item"><input type="checkbox" id="sol-2-1" disabled> <span><strong>Parametrização / Ajuste no Sistema</strong> (COEPT/NTE)</span></div>
+                            <div class="action-item"><input type="checkbox" id="sol-2-2" disabled> <span><strong>Mudança de Fluxo Interno</strong> (Rotina da própria Unidade)</span></div>
+                            <div class="action-item"><input type="checkbox" id="sol-2-3" disabled> <span><strong>Capacitação / Treinamento / Workshop</strong> (Alinhamento da equipe e padronização de processos)</span></div>
+                            <div class="action-item"><input type="checkbox" id="sol-2-4" disabled> <span><strong>Criação de nova ferramenta ou automação</strong> (Adotar nova solução ou automatizar tarefa repetitiva)</span></div>
+                            <div class="action-item"><input type="checkbox" id="sol-2-5" disabled> <span><strong>Melhorar alertas e lembretes para o aluno</strong> (Comunicações mais claras, e-mails ou mensagens)</span></div>
+                            <div class="action-item"><input type="checkbox" id="sol-2-6" disabled> <span><strong>Criar guias visuais, manuais ou passo a passo</strong> (Cartilhas, vídeos curtos ou fluxogramas)</span></div>
+                            <div class="action-item"><input type="checkbox" id="sol-2-7" disabled> <span><strong>Melhorar ou adicionar função nos sistemas atuais</strong> (Mudar tela, criar aviso visual ou melhorar portal)</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="canvas-page " id="team-3">
+        <div class="canvas-wrapper" id="canvas-wrapper-3">
+            <div class="header">
+                <div class="header-left">
+                    <img src="https://i.imgur.com/lO0qBOw.jpeg" alt="Logo SENAI" class="logo-senai">
+                    <div class="title-area">
+                        <h1>Canvas da Jornada SGE</h1>
+                        <p>Oficina de Alinhamento, Processos e Inovação Educacional</p>
+                    </div>
+                </div>
+                <div class="meta-area">
+                    <div class="meta-box">
+                        EQUIPE <span style="color:var(--navy);font-size:20px">#3</span>
+                        — <input type="text" id="team-name-3" placeholder="Nome da equipe" disabled>
+                    </div>
+                    <div class="checkbox-group">
+                        <div class="checkbox-item"><input type="checkbox" id="chk-3-1" disabled> Captação/Ingresso</div>
+                        <div class="checkbox-item"><input type="checkbox" id="chk-3-2" disabled> V. Acadêmica</div>
+                        <div class="checkbox-item"><input type="checkbox" id="chk-3-3" disabled> Financeiro</div>
+                        <div class="checkbox-item"><input type="checkbox" id="chk-3-4" disabled> Certificação</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid-container">
+                <div class="card">
+                    <div class="card-title">1. O Nó do Processo (O Problema)</div>
+                    <div class="card-instruction">Qual é a maior dificuldade, lentidão ou retrabalho que a unidade enfrenta hoje no (SGE ou demais ferramentas) nessa fase?</div>
+                    <div class="card-content">
+                        <textarea id="ta-3-no" placeholder="Descreva o problema..." disabled></textarea>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-title">2. O Impacto na Ponta (A Consequência)</div>
+                    <div class="card-instruction">Como essa situação atrapalha a rotina da unidade (secretaria, supervisão ou atendimento) ou prejudica a experiência do aluno/cliente?</div>
+                    <div class="card-content">
+                        <textarea id="ta-3-impacto" placeholder="Descreva o impacto..." disabled></textarea>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-title">3. A Solução Prática (A Ideia)</div>
+                    <div class="card-instruction">Como podemos resolver ou mitigar essa dor de forma viável usando o ecossistema atual ou ajustando o fluxo?</div>
+                    <div class="card-content">
+                        <textarea id="ta-3-solucao" placeholder="Descreva a solução..." disabled></textarea>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-title">4. TIPO DE SOLUÇÃO (O FORMATO)</div>
+                    <div class="card-instruction">De quem depende a implementação? Marque as opções:</div>
+                    <div class="card-content">
+                        <div class="action-options">
+                            <div class="action-item"><input type="checkbox" id="sol-3-1" disabled> <span><strong>Parametrização / Ajuste no Sistema</strong> (COEPT/NTE)</span></div>
+                            <div class="action-item"><input type="checkbox" id="sol-3-2" disabled> <span><strong>Mudança de Fluxo Interno</strong> (Rotina da própria Unidade)</span></div>
+                            <div class="action-item"><input type="checkbox" id="sol-3-3" disabled> <span><strong>Capacitação / Treinamento / Workshop</strong> (Alinhamento da equipe e padronização de processos)</span></div>
+                            <div class="action-item"><input type="checkbox" id="sol-3-4" disabled> <span><strong>Criação de nova ferramenta ou automação</strong> (Adotar nova solução ou automatizar tarefa repetitiva)</span></div>
+                            <div class="action-item"><input type="checkbox" id="sol-3-5" disabled> <span><strong>Melhorar alertas e lembretes para o aluno</strong> (Comunicações mais claras, e-mails ou mensagens)</span></div>
+                            <div class="action-item"><input type="checkbox" id="sol-3-6" disabled> <span><strong>Criar guias visuais, manuais ou passo a passo</strong> (Cartilhas, vídeos curtos ou fluxogramas)</span></div>
+                            <div class="action-item"><input type="checkbox" id="sol-3-7" disabled> <span><strong>Melhorar ou adicionar função nos sistemas atuais</strong> (Mudar tela, criar aviso visual ou melhorar portal)</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="canvas-page " id="team-4">
+        <div class="canvas-wrapper" id="canvas-wrapper-4">
+            <div class="header">
+                <div class="header-left">
+                    <img src="https://i.imgur.com/lO0qBOw.jpeg" alt="Logo SENAI" class="logo-senai">
+                    <div class="title-area">
+                        <h1>Canvas da Jornada SGE</h1>
+                        <p>Oficina de Alinhamento, Processos e Inovação Educacional</p>
+                    </div>
+                </div>
+                <div class="meta-area">
+                    <div class="meta-box">
+                        EQUIPE <span style="color:var(--navy);font-size:20px">#4</span>
+                        — <input type="text" id="team-name-4" placeholder="Nome da equipe" disabled>
+                    </div>
+                    <div class="checkbox-group">
+                        <div class="checkbox-item"><input type="checkbox" id="chk-4-1" disabled> Captação/Ingresso</div>
+                        <div class="checkbox-item"><input type="checkbox" id="chk-4-2" disabled> V. Acadêmica</div>
+                        <div class="checkbox-item"><input type="checkbox" id="chk-4-3" disabled> Financeiro</div>
+                        <div class="checkbox-item"><input type="checkbox" id="chk-4-4" disabled> Certificação</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid-container">
+                <div class="card">
+                    <div class="card-title">1. O Nó do Processo (O Problema)</div>
+                    <div class="card-instruction">Qual é a maior dificuldade, lentidão ou retrabalho que a unidade enfrenta hoje no (SGE ou demais ferramentas) nessa fase?</div>
+                    <div class="card-content">
+                        <textarea id="ta-4-no" placeholder="Descreva o problema..." disabled></textarea>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-title">2. O Impacto na Ponta (A Consequência)</div>
+                    <div class="card-instruction">Como essa situação atrapalha a rotina da unidade (secretaria, supervisão ou atendimento) ou prejudica a experiência do aluno/cliente?</div>
+                    <div class="card-content">
+                        <textarea id="ta-4-impacto" placeholder="Descreva o impacto..." disabled></textarea>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-title">3. A Solução Prática (A Ideia)</div>
+                    <div class="card-instruction">Como podemos resolver ou mitigar essa dor de forma viável usando o ecossistema atual ou ajustando o fluxo?</div>
+                    <div class="card-content">
+                        <textarea id="ta-4-solucao" placeholder="Descreva a solução..." disabled></textarea>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-title">4. TIPO DE SOLUÇÃO (O FORMATO)</div>
+                    <div class="card-instruction">De quem depende a implementação? Marque as opções:</div>
+                    <div class="card-content">
+                        <div class="action-options">
+                            <div class="action-item"><input type="checkbox" id="sol-4-1" disabled> <span><strong>Parametrização / Ajuste no Sistema</strong> (COEPT/NTE)</span></div>
+                            <div class="action-item"><input type="checkbox" id="sol-4-2" disabled> <span><strong>Mudança de Fluxo Interno</strong> (Rotina da própria Unidade)</span></div>
+                            <div class="action-item"><input type="checkbox" id="sol-4-3" disabled> <span><strong>Capacitação / Treinamento / Workshop</strong> (Alinhamento da equipe e padronização de processos)</span></div>
+                            <div class="action-item"><input type="checkbox" id="sol-4-4" disabled> <span><strong>Criação de nova ferramenta ou automação</strong> (Adotar nova solução ou automatizar tarefa repetitiva)</span></div>
+                            <div class="action-item"><input type="checkbox" id="sol-4-5" disabled> <span><strong>Melhorar alertas e lembretes para o aluno</strong> (Comunicações mais claras, e-mails ou mensagens)</span></div>
+                            <div class="action-item"><input type="checkbox" id="sol-4-6" disabled> <span><strong>Criar guias visuais, manuais ou passo a passo</strong> (Cartilhas, vídeos curtos ou fluxogramas)</span></div>
+                            <div class="action-item"><input type="checkbox" id="sol-4-7" disabled> <span><strong>Melhorar ou adicionar função nos sistemas atuais</strong> (Mudar tela, criar aviso visual ou melhorar portal)</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="canvas-page " id="team-5">
+        <div class="canvas-wrapper" id="canvas-wrapper-5">
+            <div class="header">
+                <div class="header-left">
+                    <img src="https://i.imgur.com/lO0qBOw.jpeg" alt="Logo SENAI" class="logo-senai">
+                    <div class="title-area">
+                        <h1>Canvas da Jornada SGE</h1>
+                        <p>Oficina de Alinhamento, Processos e Inovação Educacional</p>
+                    </div>
+                </div>
+                <div class="meta-area">
+                    <div class="meta-box">
+                        EQUIPE <span style="color:var(--navy);font-size:20px">#5</span>
+                        — <input type="text" id="team-name-5" placeholder="Nome da equipe" disabled>
+                    </div>
+                    <div class="checkbox-group">
+                        <div class="checkbox-item"><input type="checkbox" id="chk-5-1" disabled> Captação/Ingresso</div>
+                        <div class="checkbox-item"><input type="checkbox" id="chk-5-2" disabled> V. Acadêmica</div>
+                        <div class="checkbox-item"><input type="checkbox" id="chk-5-3" disabled> Financeiro</div>
+                        <div class="checkbox-item"><input type="checkbox" id="chk-5-4" disabled> Certificação</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="grid-container">
+                <div class="card">
+                    <div class="card-title">1. O Nó do Processo (O Problema)</div>
+                    <div class="card-instruction">Qual é a maior dificuldade, lentidão ou retrabalho que a unidade enfrenta hoje no (SGE ou demais ferramentas) nessa fase?</div>
+                    <div class="card-content">
+                        <textarea id="ta-5-no" placeholder="Descreva o problema..." disabled></textarea>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-title">2. O Impacto na Ponta (A Consequência)</div>
+                    <div class="card-instruction">Como essa situação atrapalha a rotina da unidade (secretaria, supervisão ou atendimento) ou prejudica a experiência do aluno/cliente?</div>
+                    <div class="card-content">
+                        <textarea id="ta-5-impacto" placeholder="Descreva o impacto..." disabled></textarea>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-title">3. A Solução Prática (A Ideia)</div>
+                    <div class="card-instruction">Como podemos resolver ou mitigar essa dor de forma viável usando o ecossistema atual ou ajustando o fluxo?</div>
+                    <div class="card-content">
+                        <textarea id="ta-5-solucao" placeholder="Descreva a solução..." disabled></textarea>
+                    </div>
+                </div>
+                <div class="card">
+                    <div class="card-title">4. TIPO DE SOLUÇÃO (O FORMATO)</div>
+                    <div class="card-instruction">De quem depende a implementação? Marque as opções:</div>
+                    <div class="card-content">
+                        <div class="action-options">
+                            <div class="action-item"><input type="checkbox" id="sol-5-1" disabled> <span><strong>Parametrização / Ajuste no Sistema</strong> (COEPT/NTE)</span></div>
+                            <div class="action-item"><input type="checkbox" id="sol-5-2" disabled> <span><strong>Mudança de Fluxo Interno</strong> (Rotina da própria Unidade)</span></div>
+                            <div class="action-item"><input type="checkbox" id="sol-5-3" disabled> <span><strong>Capacitação / Treinamento / Workshop</strong> (Alinhamento da equipe e padronização de processos)</span></div>
+                            <div class="action-item"><input type="checkbox" id="sol-5-4" disabled> <span><strong>Criação de nova ferramenta ou automação</strong> (Adotar nova solução ou automatizar tarefa repetitiva)</span></div>
+                            <div class="action-item"><input type="checkbox" id="sol-5-5" disabled> <span><strong>Melhorar alertas e lembretes para o aluno</strong> (Comunicações mais claras, e-mails ou mensagens)</span></div>
+                            <div class="action-item"><input type="checkbox" id="sol-5-6" disabled> <span><strong>Criar guias visuais, manuais ou passo a passo</strong> (Cartilhas, vídeos curtos ou fluxogramas)</span></div>
+                            <div class="action-item"><input type="checkbox" id="sol-5-7" disabled> <span><strong>Melhorar ou adicionar função nos sistemas atuais</strong> (Mudar tela, criar aviso visual ou melhorar portal)</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div><!-- /page-canvas -->
+
 <script>
+// ════════════════════════════════════════════
+//  ESTADO LOCAL
+// ════════════════════════════════════════════
+let myTeamNumber  = null;   // número escolhido por este usuário
+let myTeamName    = '';
+let selectedModal = null;   // número selecionado no modal (ainda não confirmado)
+let occupiedTeams = {};     // { 1: {nome, ocupada}, ... }  vindo do Firebase
+let canvasListeners = {};   // unsubscribe fns por equipe
+let _saveTimeout  = null;
+
+// ════════════════════════════════════════════
+//  QR CODE + URL
+// ════════════════════════════════════════════
+const currentURL = window.location.href.split('?')[0];
+document.getElementById('url-display').textContent = currentURL;
+
+document.addEventListener('DOMContentLoaded', () => {
+    new QRCode(document.getElementById('qrcode'), {
+        text: currentURL,
+        width: 140, height: 140,
+        colorDark: '#1a365d', colorLight: '#ffffff',
+        correctLevel: QRCode.CorrectLevel.M
+    });
+});
+
+// ════════════════════════════════════════════
+//  FIREBASE — espera pronto
+// ════════════════════════════════════════════
+function onFirebaseReady(fn) {
+    if (window._firebaseReady) { fn(); }
+    else { document.addEventListener('firebase-ready', fn, { once: true }); }
+}
+
+onFirebaseReady(() => {
+    // Escuta equipes em tempo real
+    window._listenTeams(snapshot => {
+        const data = snapshot.exists() ? snapshot.data() : {};
+        occupiedTeams = {};
+        for (let i = 1; i <= 5; i++) {
+            const key = `equipe_${i}`;
+            occupiedTeams[i] = data[key] || null;
+        }
+        refreshTeamGrid();
+        refreshTabLabels();
+    });
+});
+
+// ════════════════════════════════════════════
+//  MODAL
+// ════════════════════════════════════════════
+function openTeamModal() {
+    if (myTeamNumber) { showPage('canvas'); return; }
+    selectedModal = null;
+    document.getElementById('team-name-input').value = '';
+    document.getElementById('modal-error').classList.remove('show');
+    refreshTeamGrid();
+    document.getElementById('modal-team').classList.add('show');
+}
+
+function closeTeamModal() {
+    document.getElementById('modal-team').classList.remove('show');
+}
+
+function refreshTeamGrid() {
+    const grid = document.getElementById('team-grid');
+    if (!grid) return;
+    grid.innerHTML = '';
+    for (let i = 1; i <= 5; i++) {
+        const btn = document.createElement('button');
+        btn.className = 'team-num-btn';
+        const info = occupiedTeams[i];
+        const isOccupied = info && info.ocupada;
+        btn.innerHTML = `<span>${i}</span>`;
+        if (isOccupied) {
+            const lbl = document.createElement('span');
+            lbl.className = 'occupied-label';
+            lbl.textContent = info.nome ? info.nome.substring(0,8) : 'Ocupada';
+            btn.appendChild(lbl);
+            btn.disabled = true;
+        } else {
+            if (selectedModal === i) btn.classList.add('selected');
+            btn.onclick = () => selectTeamNum(i);
+        }
+        grid.appendChild(btn);
+    }
+    const confirmBtn = document.getElementById('btn-confirm-team');
+    if (confirmBtn) confirmBtn.disabled = !selectedModal;
+}
+
+function selectTeamNum(n) {
+    selectedModal = n;
+    document.getElementById('modal-error').classList.remove('show');
+    refreshTeamGrid();
+}
+
+async function confirmTeam() {
+    const name = document.getElementById('team-name-input').value.trim();
+    if (!selectedModal) {
+        document.getElementById('modal-error').classList.add('show');
+        return;
+    }
+    // Verificar se ainda disponível
+    if (occupiedTeams[selectedModal] && occupiedTeams[selectedModal].ocupada) {
+        document.getElementById('modal-error').textContent = 'Esta equipe acabou de ser escolhida por outro participante!';
+        document.getElementById('modal-error').classList.add('show');
+        selectedModal = null;
+        refreshTeamGrid();
+        return;
+    }
+
+    const confirmBtn = document.getElementById('btn-confirm-team');
+    confirmBtn.disabled = true;
+    confirmBtn.textContent = 'Salvando...';
+
+    myTeamNumber = selectedModal;
+    myTeamName   = name || `Equipe ${myTeamNumber}`;
+
+    await window._claimTeam(myTeamNumber, myTeamName);
+
+    // Preenche nome no header do canvas
+    const nameInput = document.getElementById(`team-name-${myTeamNumber}`);
+    if (nameInput) { nameInput.value = myTeamName; nameInput.disabled = false; }
+
+    enableMyTeamFields();
+    closeTeamModal();
+    showPage('canvas');
+    showTeam(myTeamNumber);
+    listenMyCanvas();
+
+    confirmBtn.disabled = false;
+    confirmBtn.textContent = 'Confirmar';
+    showToast(`✅ Você entrou na Equipe ${myTeamNumber}!`);
+}
+
+// ════════════════════════════════════════════
+//  PÁGINAS
+// ════════════════════════════════════════════
+function showPage(page) {
+    document.getElementById('page-home').style.display   = page === 'home'   ? '' : 'none';
+    document.getElementById('page-canvas').style.display = page === 'canvas' ? '' : 'none';
+}
+
+// ════════════════════════════════════════════
+//  ABAS
+// ════════════════════════════════════════════
+function buildTabs() {
+    const nav = document.getElementById('tab-nav');
+    // Remove abas antigas (mantém o btn-save-pdf à direita)
+    const right = nav.querySelector('.tab-nav-right');
+    nav.innerHTML = '';
+    for (let i = 1; i <= 5; i++) {
+        const btn = document.createElement('button');
+        btn.className = 'tab-btn' + (i === 1 ? ' active' : '');
+        btn.id = `tab-btn-${i}`;
+        btn.dataset.team = i;
+        btn.onclick = () => showTeam(i);
+        btn.innerHTML = `<span class="my-tag">MINHA EQUIPE</span>Equipe ${i}`;
+        nav.appendChild(btn);
+    }
+    nav.appendChild(right);
+    refreshTabLabels();
+}
+
+function refreshTabLabels() {
+    for (let i = 1; i <= 5; i++) {
+        const btn = document.getElementById(`tab-btn-${i}`);
+        if (!btn) continue;
+        const info = occupiedTeams[i];
+        const label = info && info.nome ? `Equipe ${i} — ${info.nome}` : `Equipe ${i}`;
+        const myTag = btn.querySelector('.my-tag');
+        btn.innerHTML = '';
+        if (myTag) btn.appendChild(myTag); else { const t = document.createElement('span'); t.className='my-tag'; t.textContent='MINHA EQUIPE'; btn.appendChild(t); }
+        btn.appendChild(document.createTextNode(label));
+        if (i === myTeamNumber) btn.classList.add('my-team'); else btn.classList.remove('my-team');
+    }
+}
+
+function showTeam(n) {
+    document.querySelectorAll('.canvas-page').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+    const page = document.getElementById(`team-${n}`);
+    const btn  = document.getElementById(`tab-btn-${n}`);
+    if (page) page.classList.add('active');
+    if (btn)  btn.classList.add('active');
+}
+
+// ════════════════════════════════════════════
+//  CAMPOS — habilita só a equipe do usuário
+// ════════════════════════════════════════════
+function enableMyTeamFields() {
+    const n = myTeamNumber;
+    ['no','impacto','solucao'].forEach(k => {
+        const el = document.getElementById(`ta-${n}-${k}`);
+        if (el) el.disabled = false;
+    });
+    for (let c = 1; c <= 4; c++) {
+        const el = document.getElementById(`chk-${n}-${c}`);
+        if (el) el.disabled = false;
+    }
+    for (let s = 1; s <= 7; s++) {
+        const el = document.getElementById(`sol-${n}-${s}`);
+        if (el) el.disabled = false;
+    }
+    const nameEl = document.getElementById(`team-name-${n}`);
+    if (nameEl) nameEl.disabled = false;
+
+    // Escuta mudanças para salvar no Firebase
+    ['no','impacto','solucao'].forEach(k => {
+        const el = document.getElementById(`ta-${n}-${k}`);
+        if (el) el.addEventListener('input', () => scheduleCanvasSave());
+    });
+    for (let c = 1; c <= 4; c++) {
+        const el = document.getElementById(`chk-${n}-${c}`);
+        if (el) el.addEventListener('change', () => scheduleCanvasSave());
+    }
+    for (let s = 1; s <= 7; s++) {
+        const el = document.getElementById(`sol-${n}-${s}`);
+        if (el) el.addEventListener('change', () => scheduleCanvasSave());
+    }
+    const nameEl2 = document.getElementById(`team-name-${n}`);
+    if (nameEl2) nameEl2.addEventListener('input', () => scheduleCanvasSave());
+}
+
+// ════════════════════════════════════════════
+//  FIREBASE — salvar e escutar canvas
+// ════════════════════════════════════════════
+function scheduleCanvasSave() {
+    clearTimeout(_saveTimeout);
+    _saveTimeout = setTimeout(saveMyCanvas, 800);
+}
+
+async function saveMyCanvas() {
+    const n = myTeamNumber;
+    if (!n) return;
+    const dados = {
+        nome:     document.getElementById(`team-name-${n}`)?.value || '',
+        no:       document.getElementById(`ta-${n}-no`)?.value     || '',
+        impacto:  document.getElementById(`ta-${n}-impacto`)?.value || '',
+        solucao:  document.getElementById(`ta-${n}-solucao`)?.value || '',
+        chk1: document.getElementById(`chk-${n}-1`)?.checked || false,
+        chk2: document.getElementById(`chk-${n}-2`)?.checked || false,
+        chk3: document.getElementById(`chk-${n}-3`)?.checked || false,
+        chk4: document.getElementById(`chk-${n}-4`)?.checked || false,
+        sol1: document.getElementById(`sol-${n}-1`)?.checked || false,
+        sol2: document.getElementById(`sol-${n}-2`)?.checked || false,
+        sol3: document.getElementById(`sol-${n}-3`)?.checked || false,
+        sol4: document.getElementById(`sol-${n}-4`)?.checked || false,
+        sol5: document.getElementById(`sol-${n}-5`)?.checked || false,
+        sol6: document.getElementById(`sol-${n}-6`)?.checked || false,
+        sol7: document.getElementById(`sol-${n}-7`)?.checked || false,
+    };
+    await window._saveCanvas(n, dados);
+}
+
+function listenMyCanvas() {
+    const n = myTeamNumber;
+    if (canvasListeners[n]) canvasListeners[n]();
+    // Também escuta todos para exibir dados dos outros em read-only
+    for (let i = 1; i <= 5; i++) listenTeamCanvas(i);
+}
+
+function listenTeamCanvas(i) {
+    if (canvasListeners[i]) return; // já escutando
+    canvasListeners[i] = window._listenCanvas(i, snapshot => {
+        if (!snapshot.exists()) return;
+        const d = snapshot.data();
+        // Não sobrescreve campos da própria equipe enquanto o usuário digita
+        if (i === myTeamNumber) return;
+        applyCanvasData(i, d);
+    });
+}
+
+function applyCanvasData(n, d) {
+    const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.value = val || ''; };
+    const setChk = (id, val) => { const el = document.getElementById(id); if (el) el.checked = !!val; };
+    setVal(`team-name-${n}`, d.nome);
+    setVal(`ta-${n}-no`,      d.no);
+    setVal(`ta-${n}-impacto`, d.impacto);
+    setVal(`ta-${n}-solucao`, d.solucao);
+    for (let c = 1; c <= 4; c++) setChk(`chk-${n}-${c}`, d[`chk${c}`]);
+    for (let s = 1; s <= 7; s++) setChk(`sol-${n}-${s}`, d[`sol${s}`]);
+}
+
+// ════════════════════════════════════════════
+//  SALVAR PDF (equipe mais preenchida)
+// ════════════════════════════════════════════
+function countData(n) {
+    let total = 0;
+    ['no','impacto','solucao'].forEach(k => {
+        const el = document.getElementById(`ta-${n}-${k}`);
+        if (el) total += el.value.trim().length;
+    });
+    for (let s = 1; s <= 7; s++) {
+        const el = document.getElementById(`sol-${n}-${s}`);
+        if (el && el.checked) total += 10;
+    }
+    return total;
+}
+
 async function savePDF() {
     const { jsPDF } = window.jspdf;
     const btn = document.querySelector('.btn-save-pdf');
     const loading = document.getElementById('pdf-loading');
     const loadingText = document.getElementById('pdf-loading-text');
 
-    // Determina qual equipe imprimir: a mais preenchida, ou a ativa em caso de empate/zero
-    const pages = document.querySelectorAll('.canvas-page');
-    const counts = Array.from(pages).map(p => countData(p));
+    const counts = Array.from({length: 5}, (_, i) => countData(i + 1));
     const maxCount = Math.max(...counts);
-    const activeIndex = Array.from(document.querySelectorAll('.tab-btn')).findIndex(b => b.classList.contains('active'));
+    const activeBtn = document.querySelector('.tab-btn.active');
+    const activeIndex = activeBtn ? parseInt(activeBtn.dataset.team) - 1 : 0;
     const targetIndex = maxCount > 0 ? counts.indexOf(maxCount) : activeIndex;
-    const targetPage  = pages[targetIndex];
+    const targetPage  = document.getElementById(`team-${targetIndex + 1}`);
 
     btn.disabled = true;
     loading.classList.add('show');
     loadingText.textContent = `Gerando PDF da Equipe ${targetIndex + 1}...`;
 
-    const pageW = 420;
-    const pageH = 297;
     const pdf = new jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a3' });
     const tabNav = document.querySelector('.tab-nav');
 
-    // Esconde nav e mostra só a página alvo
     tabNav.style.display = 'none';
-    pages.forEach(p => p.style.display = 'none');
+    document.querySelectorAll('.canvas-page').forEach(p => p.style.display = 'none');
     targetPage.style.display = 'block';
 
-    await new Promise(r => setTimeout(r, 150));
+    await new Promise(r => setTimeout(r, 200));
 
     const canvas = await html2canvas(targetPage, {
-        scale: 2,
-        useCORS: true,
-        backgroundColor: '#ffffff',
-        logging: false
+        scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false
     });
 
     const imgData = canvas.toDataURL('image/jpeg', 0.92);
-    const imgW = pageW;
+    const pageW = 420, pageH = 297;
     const imgH = (canvas.height / canvas.width) * pageW;
     const offsetY = Math.max((pageH - imgH) / 2, 0);
-    pdf.addImage(imgData, 'JPEG', 0, offsetY, imgW, imgH);
+    pdf.addImage(imgData, 'JPEG', 0, offsetY, pageW, imgH);
 
-    // Restaura tudo
     tabNav.style.display = '';
-    pages.forEach(p => p.style.display = 'none');
-    pages[activeIndex >= 0 ? activeIndex : 0].style.display = 'block';
+    document.querySelectorAll('.canvas-page').forEach(p => p.style.display = 'none');
+    document.getElementById(`team-${targetIndex + 1}`).style.display = 'block';
+    document.getElementById(`tab-btn-${targetIndex + 1}`)?.classList.add('active');
 
     loading.classList.remove('show');
     btn.disabled = false;
 
-    pdf.save(`Canvas_Jornada_SGE_Equipe${targetIndex + 1}.pdf`);
+    pdf.save(`Canvas_SGE_Equipe${targetIndex + 1}.pdf`);
 }
+
+// ════════════════════════════════════════════
+//  TOAST
+// ════════════════════════════════════════════
+function showToast(msg, duration = 3000) {
+    const t = document.getElementById('toast');
+    t.textContent = msg;
+    t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), duration);
+}
+
+// ════════════════════════════════════════════
+//  INIT
+// ════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', () => {
+    buildTabs();
+    showPage('home');
+    // Escuta todos os canvas em read-only para exibir ao navegar pelas abas
+    onFirebaseReady(() => {
+        for (let i = 1; i <= 5; i++) listenTeamCanvas(i);
+    });
+});
 </script>
 
 </body>
