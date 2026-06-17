@@ -45,7 +45,7 @@
     </script>
 
         <!-- QR Code lib -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
     <!-- html2canvas + jsPDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -227,9 +227,9 @@
 
         .steps-grid {
             display: grid;
-            grid-template-columns: repeat(4, 1fr);
+            grid-template-columns: repeat(5, 1fr);
             gap: 0;
-            max-width: 1000px;
+            max-width: 1100px;
             margin: 0 auto;
             position: relative;
         }
@@ -237,8 +237,8 @@
             content: '';
             position: absolute;
             top: 28px;
-            left: 12.5%;
-            right: 12.5%;
+            left: 10%;
+            right: 10%;
             height: 2px;
             background: #e2e8f0;
             z-index: 0;
@@ -778,6 +778,84 @@
         .respostas-empty .big { font-size: 3rem; margin-bottom: 12px; }
         .respostas-empty p { font-size: 1rem; }
 
+
+        /* ── MODAL TOKEN ── */
+        .modal-token-box {
+            background: #fff;
+            border-radius: 16px;
+            padding: 36px 32px;
+            width: 100%;
+            max-width: 400px;
+            box-shadow: 0 20px 60px rgba(0,0,0,.25);
+            animation: popIn .25s ease;
+            text-align: center;
+        }
+        .modal-token-box .lock-icon {
+            font-size: 2.8rem;
+            margin-bottom: 14px;
+        }
+        .modal-token-box h2 {
+            font-size: 1.2rem;
+            color: var(--navy);
+            margin-bottom: 6px;
+        }
+        .modal-token-box p {
+            font-size: .88rem;
+            color: var(--gray);
+            margin-bottom: 22px;
+        }
+        .modal-token-box input {
+            width: 100%;
+            border: 1.5px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 11px 14px;
+            font-size: 1rem;
+            font-family: inherit;
+            outline: none;
+            text-align: center;
+            letter-spacing: 2px;
+            transition: border-color .2s;
+            margin-bottom: 10px;
+        }
+        .modal-token-box input:focus { border-color: var(--navy); }
+        .modal-token-box .token-error {
+            font-size: .82rem;
+            color: var(--red);
+            margin-bottom: 12px;
+            min-height: 18px;
+        }
+        .modal-token-box .btn-token-confirm {
+            width: 100%;
+            background: var(--navy);
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            padding: 12px;
+            font-size: .95rem;
+            font-weight: 700;
+            cursor: pointer;
+            font-family: inherit;
+            transition: background .2s;
+        }
+        .modal-token-box .btn-token-confirm:hover { background: var(--blue); }
+        .modal-token-box .btn-token-cancel {
+            background: none;
+            border: none;
+            color: var(--gray);
+            font-size: .85rem;
+            cursor: pointer;
+            margin-top: 12px;
+            font-family: inherit;
+        }
+        .modal-token-box .btn-token-cancel:hover { color: var(--navy); }
+
+
+        @keyframes shake {
+            0%,100% { transform: translateX(0); }
+            20%,60%  { transform: translateX(-8px); }
+            40%,80%  { transform: translateX(8px); }
+        }
+
         @media print {
             #page-home, .tab-nav, .btn-save-pdf { display: none !important; }
             .canvas-page { display: block !important; page-break-after: always; }
@@ -805,7 +883,7 @@
     <nav class="home-nav">
         <img src="https://i.imgur.com/lO0qBOw.jpeg" alt="Logo SENAI">
         <div style="display:flex;align-items:center;gap:12px;">
-            <button class="btn-nav-respostas" onclick="showRespostas()">📊 Ver todas as respostas</button>
+            <button class="btn-nav-respostas" onclick="openRespostasComToken()">📊 Ver todas as respostas</button>
             <span class="nav-badge">Treinamento SGE · 2026</span>
         </div>
     </nav>
@@ -836,7 +914,7 @@
     <div class="steps-section">
         <div class="steps-header">
             <span class="tag">Como funciona</span>
-            <h2>4 passos simples</h2>
+            <h2>5 passos simples</h2>
             <p>Cada equipe trabalha no seu próprio espaço e as atualizações aparecem para todos ao mesmo tempo.</p>
         </div>
         <div class="steps-grid">
@@ -853,12 +931,17 @@
             <div class="step-item">
                 <div class="step-num">3</div>
                 <h3>Mapeie o impacto</h3>
-                <p>Descreva como esse problema afeta a rotina da unidade e a experiência do aluno.</p>
+                <p>Descreva como esse problema gera retrabalho, atrasos ou gargalos nos processos internos da unidade.</p>
             </div>
             <div class="step-item">
                 <div class="step-num">4</div>
                 <h3>Proponha a solução</h3>
                 <p>Defina uma ideia prática e o tipo de solução necessária para resolver a dor.</p>
+            </div>
+            <div class="step-item">
+                <div class="step-num" style="background:#276749;">5</div>
+                <h3>Apresente os resultados</h3>
+                <p>Compartilhe as respostas da sua equipe com todos os participantes da oficina.</p>
             </div>
         </div>
     </div>
@@ -876,6 +959,23 @@
         </div>
     </div>
 
+</div>
+
+<!-- ════════════════════════════════════
+     MODAL TOKEN RESPOSTAS
+════════════════════════════════════ -->
+<div class="modal-overlay" id="modal-token">
+    <div class="modal-token-box">
+        <div class="lock-icon">🔒</div>
+        <h2>Área Restrita</h2>
+        <p>Insira o token de acesso para visualizar todas as respostas das equipes.</p>
+        <input type="password" id="token-input" placeholder="••••••••••" maxlength="20"
+            onkeydown="if(event.key==='Enter') confirmToken()">
+        <div class="token-error" id="token-error"></div>
+        <button class="btn-token-confirm" onclick="confirmToken()">Acessar</button>
+        <br>
+        <button class="btn-token-cancel" onclick="closeTokenModal()">Cancelar</button>
+    </div>
 </div>
 
 <!-- ════════════════════════════════════
@@ -1280,16 +1380,27 @@ let _saveTimeout  = null;
 //  QR CODE + URL
 // ════════════════════════════════════════════
 document.addEventListener('DOMContentLoaded', () => {
+    // QR Code
     const currentURL = window.location.href.split('?')[0];
     document.getElementById('url-display').textContent = currentURL;
-
     new QRCode(document.getElementById('qrcode'), {
         text: currentURL,
         width: 200, height: 200,
         colorDark: '#1a365d', colorLight: '#ffffff',
         correctLevel: QRCode.CorrectLevel.M
     });
+
+    // Init app
+    buildTabs();
+    document.getElementById('page-home').style.display      = 'flex';
+    document.getElementById('page-canvas').style.display    = 'none';
+    document.getElementById('page-respostas').style.display = 'none';
+    updateHomeCTA();
+    onFirebaseReady(() => {
+        for (let i = 1; i <= 5; i++) listenTeamCanvas(i);
+    });
 });
+
 
 // ════════════════════════════════════════════
 //  FIREBASE — espera pronto
@@ -1711,78 +1822,110 @@ const SOLUCAO_LABELS = [
     'Melhorar ou adicionar função nos sistemas atuais'
 ];
 
-async function showRespostas() {
+function showRespostas() {
     showPage('respostas');
     const body = document.getElementById('respostas-body');
     body.innerHTML = '<div class="respostas-empty"><div class="big">⏳</div><p>Carregando respostas...</p></div>';
 
-    // Busca todos os canvas do Firebase
-    try {
-        let hasAny = false;
-        let html_out = '';
-        for (let i = 1; i <= 5; i++) {
-            const info = occupiedTeams[i];
-            if (!info || !info.ocupada) continue;
-
-            // Pega dados do canvas via snapshot atual
-            const d = await new Promise(resolve => {
-                const unsub = window._listenCanvas(i, snap => {
-                    unsub();
-                    resolve(snap.exists() ? snap.data() : null);
-                });
-            });
-
-            hasAny = true;
-            const nome = (d && d.nome) || info.nome || `Equipe ${i}`;
-            const chips = SOLUCAO_LABELS.filter((_, idx) => d && d[`sol${idx+1}`])
-                .map(l => `<span class="chip">${l}</span>`).join('');
-
-            html_out += `
-            <div class="resposta-card">
-                <div class="resposta-card-header">
-                    <div class="eq-num">${i}</div>
-                    <h3>${nome}</h3>
-                    <span>Equipe ${i}</span>
-                </div>
-                <div class="resposta-fields">
-                    <div class="resposta-field">
-                        <label>🔴 O Nó do Processo (O Problema)</label>
-                        <p class="${d && d.no ? '' : 'empty'}">${(d && d.no) || 'Não preenchido'}</p>
-                    </div>
-                    <div class="resposta-field">
-                        <label>🟠 O Impacto na Ponta (A Consequência)</label>
-                        <p class="${d && d.impacto ? '' : 'empty'}">${(d && d.impacto) || 'Não preenchido'}</p>
-                    </div>
-                    <div class="resposta-field">
-                        <label>🟢 A Solução Prática (A Ideia)</label>
-                        <p class="${d && d.solucao ? '' : 'empty'}">${(d && d.solucao) || 'Não preenchido'}</p>
-                    </div>
-                    ${chips ? `<div class="resposta-field"><label>🔵 Tipos de Solução</label><div class="resposta-chips">${chips}</div></div>` : ''}
-                </div>
-            </div>`;
-        }
-
-        body.innerHTML = hasAny ? html_out : '<div class="respostas-empty"><div class="big">📭</div><p>Nenhuma equipe respondeu ainda.</p></div>';
-    } catch(e) {
-        body.innerHTML = '<div class="respostas-empty"><div class="big">❌</div><p>Erro ao carregar respostas.</p></div>';
+    if (window._respostasListeners) {
+        window._respostasListeners.forEach(u => { try { u(); } catch(e){} });
     }
+    window._respostasListeners = [];
+
+    const dadosEquipes = {};
+    let snapCount = 0;
+
+    function renderAll() {
+        let hasAny = false;
+        let out = '';
+        for (var i = 1; i <= 5; i++) {
+            var d    = dadosEquipes[i];
+            var info = occupiedTeams[i];
+            var temDados   = d && (d.no || d.impacto || d.solucao || d.nome);
+            var registrada = info && info.ocupada;
+            if (!temDados && !registrada) continue;
+            hasAny = true;
+            var nome  = (d && d.nome) || (info && info.nome) || ('Equipe ' + i);
+            var chips = '';
+            if (d) {
+                for (var s = 0; s < SOLUCAO_LABELS.length; s++) {
+                    if (d['sol' + (s+1)]) chips += '<span class="chip">' + SOLUCAO_LABELS[s] + '</span>';
+                }
+            }
+            out += '<div class="resposta-card">'
+                + '<div class="resposta-card-header">'
+                + '<div class="eq-num">' + i + '</div>'
+                + '<h3>' + nome + '</h3>'
+                + '<span>Equipe ' + i + '</span>'
+                + '</div><div class="resposta-fields">'
+                + '<div class="resposta-field"><label>🔴 O Nó do Processo (O Problema)</label>'
+                + '<p class="' + (d&&d.no?'':'empty') + '">' + (d&&d.no ? d.no : 'Não preenchido') + '</p></div>'
+                + '<div class="resposta-field"><label>🟠 O Impacto na Ponta (A Consequência)</label>'
+                + '<p class="' + (d&&d.impacto?'':'empty') + '">' + (d&&d.impacto ? d.impacto : 'Não preenchido') + '</p></div>'
+                + '<div class="resposta-field"><label>🟢 A Solução Prática (A Ideia)</label>'
+                + '<p class="' + (d&&d.solucao?'':'empty') + '">' + (d&&d.solucao ? d.solucao : 'Não preenchido') + '</p></div>'
+                + (chips ? '<div class="resposta-field"><label>🔵 Tipos de Solução</label><div class="resposta-chips">' + chips + '</div></div>' : '')
+                + '</div></div>';
+        }
+        body.innerHTML = hasAny
+            ? out
+            : '<div class="respostas-empty"><div class="big">📭</div><p>Nenhuma equipe respondeu ainda.</p></div>';
+    }
+
+    for (var i = 1; i <= 5; i++) {
+        (function(n) {
+            var unsub = window._listenCanvas(n, function(snap) {
+                dadosEquipes[n] = snap.exists() ? snap.data() : {};
+                snapCount++;
+                renderAll(); // renderiza a cada update, não só quando chegam todos
+            });
+            window._respostasListeners.push(unsub);
+        })(i);
+    }
+
+    // fallback: garante render após 2s mesmo se snapshots não chegarem
+    setTimeout(renderAll, 2000);
+}
+
+
+function openRespostasComToken() {
+    // Se já autenticado nesta sessão, vai direto
+    if (sessionStorage.getItem('sge_token_ok') === '1') {
+        showRespostas();
+        return;
+    }
+    document.getElementById('token-input').value = '';
+    document.getElementById('token-error').textContent = '';
+    document.getElementById('modal-token').classList.add('show');
+    setTimeout(() => document.getElementById('token-input').focus(), 100);
+}
+
+function confirmToken() {
+    const val = document.getElementById('token-input').value.trim();
+    if (val === TOKEN_CORRETO) {
+        sessionStorage.setItem('sge_token_ok', '1');
+        closeTokenModal();
+        showRespostas();
+    } else {
+        const err = document.getElementById('token-error');
+        err.textContent = 'Token incorreto. Tente novamente.';
+        document.getElementById('token-input').value = '';
+        document.getElementById('token-input').focus();
+        // Efeito shake
+        const box = document.querySelector('.modal-token-box');
+        box.style.animation = 'none';
+        box.offsetHeight;
+        box.style.animation = 'shake .3s ease';
+    }
+}
+
+function closeTokenModal() {
+    document.getElementById('modal-token').classList.remove('show');
 }
 
 // ════════════════════════════════════════════
 //  INIT
 // ════════════════════════════════════════════
-document.addEventListener('DOMContentLoaded', () => {
-    buildTabs();
-    // Garante estado inicial correto
-    document.getElementById('page-home').style.display      = 'flex';
-    document.getElementById('page-canvas').style.display    = 'none';
-    document.getElementById('page-respostas').style.display = 'none';
-    updateHomeCTA();
-    // Escuta todos os canvas em read-only para exibir ao navegar pelas abas
-    onFirebaseReady(() => {
-        for (let i = 1; i <= 5; i++) listenTeamCanvas(i);
-    });
-});
 </script>
 
 </body>
