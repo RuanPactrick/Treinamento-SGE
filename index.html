@@ -36,8 +36,24 @@
         };
 
         window._listenCanvas = function(numero, callback) {
-            return db.collection("canvas").doc(`equipe_${numero}`)
+            return db.collection("canvas").doc("equipe_" + numero)
                 .onSnapshot(callback);
+        };
+
+        // Leitura direta de todas as equipes (sessao + canvas)
+        window._getAllData = async function() {
+            const [equipesSnap, canvasSnaps] = await Promise.all([
+                db.collection("sessao").doc("equipes").get(),
+                Promise.all([1,2,3,4,5].map(i =>
+                    db.collection("canvas").doc("equipe_" + i).get()
+                ))
+            ]);
+            const equipes = equipesSnap.exists ? equipesSnap.data() : {};
+            const canvas  = {};
+            canvasSnaps.forEach((snap, idx) => {
+                canvas[idx + 1] = snap.exists ? snap.data() : null;
+            });
+            return { equipes, canvas };
         };
 
         window._firebaseReady = true;
@@ -1832,20 +1848,20 @@ function showRespostas() {
     }
     window._respostasListeners = [];
 
-    const dadosEquipes = {};
-    let snapCount = 0;
+    var dadosEquipes  = {};
+    var dadosEquipes2 = {}; // equipes registradas
 
     function renderAll() {
-        let hasAny = false;
-        let out = '';
+        var hasAny = false;
+        var out = '';
         for (var i = 1; i <= 5; i++) {
             var d    = dadosEquipes[i];
-            var info = occupiedTeams[i];
+            var info = dadosEquipes2[i];
             var temDados   = d && (d.no || d.impacto || d.solucao || d.nome);
             var registrada = info && info.ocupada;
             if (!temDados && !registrada) continue;
             hasAny = true;
-            var nome  = (d && d.nome) || (info && info.nome) || ('Equipe ' + i);
+            var nome = (d && d.nome) || (info && info.nome) || ('Equipe ' + i);
             var chips = '';
             if (d) {
                 for (var s = 0; s < SOLUCAO_LABELS.length; s++) {
@@ -1855,36 +1871,56 @@ function showRespostas() {
             out += '<div class="resposta-card">'
                 + '<div class="resposta-card-header">'
                 + '<div class="eq-num">' + i + '</div>'
-                + '<h3>' + nome + '</h3>'
-                + '<span>Equipe ' + i + '</span>'
+                + '<h3>' + nome + '</h3><span>Equipe ' + i + '</span>'
                 + '</div><div class="resposta-fields">'
                 + '<div class="resposta-field"><label>🔴 O Nó do Processo (O Problema)</label>'
-                + '<p class="' + (d&&d.no?'':'empty') + '">' + (d&&d.no ? d.no : 'Não preenchido') + '</p></div>'
+                + '<p class="' + (d&&d.no?'':'empty') + '">' + (d&&d.no||'Não preenchido') + '</p></div>'
                 + '<div class="resposta-field"><label>🟠 O Impacto na Ponta (A Consequência)</label>'
-                + '<p class="' + (d&&d.impacto?'':'empty') + '">' + (d&&d.impacto ? d.impacto : 'Não preenchido') + '</p></div>'
+                + '<p class="' + (d&&d.impacto?'':'empty') + '">' + (d&&d.impacto||'Não preenchido') + '</p></div>'
                 + '<div class="resposta-field"><label>🟢 A Solução Prática (A Ideia)</label>'
-                + '<p class="' + (d&&d.solucao?'':'empty') + '">' + (d&&d.solucao ? d.solucao : 'Não preenchido') + '</p></div>'
+                + '<p class="' + (d&&d.solucao?'':'empty') + '">' + (d&&d.solucao||'Não preenchido') + '</p></div>'
                 + (chips ? '<div class="resposta-field"><label>🔵 Tipos de Solução</label><div class="resposta-chips">' + chips + '</div></div>' : '')
                 + '</div></div>';
         }
-        body.innerHTML = hasAny
-            ? out
+        body.innerHTML = hasAny ? out
             : '<div class="respostas-empty"><div class="big">📭</div><p>Nenhuma equipe respondeu ainda.</p></div>';
     }
 
+    // 1. Leitura direta imediata via _getAllData
+    if (window._firebaseReady && window._getAllData) {
+        window._getAllData().then(function(result) {
+            var eq = result.equipes || {};
+            for (var i = 1; i <= 5; i++) {
+                dadosEquipes2[i] = eq['equipe_' + i] || null;
+                dadosEquipes[i]  = result.canvas[i]  || {};
+            }
+            renderAll();
+        }).catch(function(e) {
+            console.warn('Erro _getAllData:', e);
+            renderAll();
+        });
+    }
+
+    // 2. Listeners ao vivo para atualizações em tempo real
     for (var i = 1; i <= 5; i++) {
         (function(n) {
             var unsub = window._listenCanvas(n, function(snap) {
-                dadosEquipes[n] = snap.exists() ? snap.data() : {};
-                snapCount++;
-                renderAll(); // renderiza a cada update, não só quando chegam todos
+                dadosEquipes[n] = snap.exists ? snap.data() : {};
+                renderAll();
             });
             window._respostasListeners.push(unsub);
         })(i);
     }
 
-    // fallback: garante render após 2s mesmo se snapshots não chegarem
-    setTimeout(renderAll, 2000);
+    // Listener equipes ao vivo
+    var unsubEq = window._listenTeams(function(snap) {
+        var data = snap.exists ? snap.data() : {};
+        for (var i = 1; i <= 5; i++) {
+            dadosEquipes2[i] = data['equipe_' + i] || null;
+        }
+        renderAll();
+    });
+    window._respostasListeners.push(unsubEq);
 }
 
 
