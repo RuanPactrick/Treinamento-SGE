@@ -1900,6 +1900,8 @@ function openRespostasComToken() {
     setTimeout(() => document.getElementById('token-input').focus(), 100);
 }
 
+const TOKEN_CORRETO = 'Senai@2026';
+
 function confirmToken() {
     const val = document.getElementById('token-input').value.trim();
     if (val === TOKEN_CORRETO) {
