@@ -647,6 +647,137 @@
         }
         #toast.show { opacity: 1; }
 
+
+        /* ── CANVAS ACTION BAR ── */
+        .canvas-action-bar {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: var(--navy);
+            padding: 12px 24px;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+        .canvas-team-label {
+            color: #fff;
+            font-size: 1rem;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+        .canvas-team-label .team-tag {
+            background: #63b3ed;
+            color: #1a365d;
+            font-size: .78rem;
+            font-weight: 800;
+            padding: 3px 12px;
+            border-radius: 20px;
+            text-transform: uppercase;
+            letter-spacing: .5px;
+        }
+        .canvas-actions { display: flex; gap: 10px; }
+        .btn-action {
+            border: none; border-radius: 8px;
+            padding: 9px 22px; font-size: .88rem;
+            font-weight: 700; cursor: pointer;
+            font-family: inherit; transition: all .15s;
+        }
+        .btn-action.reset  { background: #744210; color: #fefcbf; }
+        .btn-action.reset:hover  { background: #975a16; }
+        .btn-action.cancel { background: rgba(255,255,255,.15); color: #fff; border: 1px solid rgba(255,255,255,.3); }
+        .btn-action.cancel:hover { background: rgba(255,255,255,.25); }
+        .btn-action.save   { background: #276749; color: #fff; }
+        .btn-action.save:hover   { background: #2f855a; }
+        .btn-action:disabled { opacity: .5; cursor: not-allowed; }
+
+        /* ── BTN VER RESPOSTAS (home) ── */
+        .btn-ver-respostas {
+            display: inline-flex; align-items: center; gap: 10px;
+            background: #276749; color: #fff;
+            border: none; border-radius: 12px;
+            padding: 18px 40px; font-size: 1rem; font-weight: 700;
+            cursor: pointer; font-family: inherit;
+            box-shadow: 0 4px 20px rgba(39,103,73,.3);
+            transition: background .2s;
+        }
+        .btn-ver-respostas:hover { background: #2f855a; }
+
+        /* ── BTN NAVBAR VER TODAS ── */
+        .btn-nav-respostas {
+            background: #276749; color: #fff;
+            border: none; border-radius: 8px;
+            padding: 8px 18px; font-size: .82rem; font-weight: 700;
+            cursor: pointer; font-family: inherit;
+            transition: background .2s;
+        }
+        .btn-nav-respostas:hover { background: #2f855a; }
+
+        /* ── PÁGINA RESPOSTAS ── */
+        #page-respostas {
+            display: none;
+            min-height: 100vh;
+            background: #f8f9fb;
+        }
+        .respostas-nav {
+            background: var(--navy);
+            padding: 16px 32px;
+            display: flex; align-items: center; justify-content: space-between;
+        }
+        .respostas-nav h2 { color: #fff; font-size: 1.1rem; font-weight: 700; }
+        .btn-back {
+            background: rgba(255,255,255,.15); color: #fff;
+            border: 1px solid rgba(255,255,255,.3); border-radius: 8px;
+            padding: 8px 18px; font-size: .85rem; font-weight: 600;
+            cursor: pointer; font-family: inherit;
+        }
+        .btn-back:hover { background: rgba(255,255,255,.25); }
+        .respostas-body {
+            max-width: 900px; margin: 0 auto; padding: 36px 24px;
+        }
+        .resposta-card {
+            background: #fff; border-radius: 14px;
+            box-shadow: 0 2px 12px rgba(0,0,0,.07);
+            margin-bottom: 24px; overflow: hidden;
+        }
+        .resposta-card-header {
+            background: var(--navy); color: #fff;
+            padding: 14px 24px;
+            display: flex; align-items: center; gap: 12px;
+        }
+        .resposta-card-header .eq-num {
+            width: 34px; height: 34px; border-radius: 50%;
+            background: #63b3ed; color: #1a365d;
+            font-weight: 800; font-size: 1rem;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
+        }
+        .resposta-card-header h3 { font-size: 1rem; font-weight: 700; }
+        .resposta-card-header span { font-size: .82rem; opacity: .75; margin-left: auto; }
+        .resposta-fields { padding: 20px 24px; display: flex; flex-direction: column; gap: 16px; }
+        .resposta-field label {
+            font-size: .75rem; font-weight: 700; color: var(--navy);
+            text-transform: uppercase; letter-spacing: .5px;
+            display: block; margin-bottom: 4px;
+        }
+        .resposta-field p {
+            font-size: .9rem; color: #2d3748; line-height: 1.6;
+            background: #f7fafc; border-radius: 6px; padding: 10px 14px;
+            min-height: 36px; white-space: pre-wrap;
+        }
+        .resposta-field p.empty { color: #a0aec0; font-style: italic; }
+        .resposta-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+        .chip {
+            background: #ebf4ff; color: #2b6cb0;
+            border-radius: 20px; padding: 4px 14px;
+            font-size: .78rem; font-weight: 600;
+        }
+        .respostas-empty {
+            text-align: center; padding: 60px 20px; color: var(--gray);
+        }
+        .respostas-empty .big { font-size: 3rem; margin-bottom: 12px; }
+        .respostas-empty p { font-size: 1rem; }
+
         @media print {
             #page-home, .tab-nav, .btn-save-pdf { display: none !important; }
             .canvas-page { display: block !important; page-break-after: always; }
@@ -673,7 +804,10 @@
     <!-- NAVBAR -->
     <nav class="home-nav">
         <img src="https://i.imgur.com/lO0qBOw.jpeg" alt="Logo SENAI">
-        <span class="nav-badge">Treinamento SGE · 2026</span>
+        <div style="display:flex;align-items:center;gap:12px;">
+            <button class="btn-nav-respostas" onclick="showRespostas()">📊 Ver todas as respostas</button>
+            <span class="nav-badge">Treinamento SGE · 2026</span>
+        </div>
     </nav>
 
     <!-- HERO SPLIT -->
@@ -682,9 +816,11 @@
             <span class="eyebrow">Oficina de Alinhamento</span>
             <h1>Canvas da<br><span>Jornada SGE</span></h1>
             <p>Mapeie os nós de processo, entenda os impactos e construa soluções práticas com sua equipe — tudo colaborativo e em tempo real.</p>
-            <button class="btn-primary" onclick="openTeamModal()">
-                Entrar no Canvas <span class="arrow">→</span>
-            </button>
+            <div id="cta-hero-wrap">
+                <button class="btn-primary" id="btn-cta-hero" onclick="openTeamModal()">
+                    Entrar no Canvas <span class="arrow">→</span>
+                </button>
+            </div>
         </div>
         <div class="hero-right">
             <div class="qr-card">
@@ -733,9 +869,11 @@
             <h3>Pronto para começar?</h3>
             <p>Clique no botão ao lado, escolha o número da sua equipe e comece a preencher o Canvas. Os dados são salvos automaticamente no banco de dados.</p>
         </div>
-        <button class="btn-primary" onclick="openTeamModal()">
-            Entrar no Canvas <span class="arrow">→</span>
-        </button>
+        <div id="cta-bottom-wrap">
+            <button class="btn-primary" id="btn-cta-bottom" onclick="openTeamModal()">
+                Entrar no Canvas <span class="arrow">→</span>
+            </button>
+        </div>
     </div>
 
 </div>
@@ -771,10 +909,15 @@
 ════════════════════════════════════ -->
 <div id="page-canvas">
 
-    <div class="tab-nav" id="tab-nav">
-        <!-- abas geradas via JS -->
-        <div class="tab-nav-right">
-            <button class="btn-save-pdf" onclick="savePDF()">⬇️ Salvar PDF</button>
+    <div class="canvas-action-bar" id="canvas-action-bar">
+        <div class="canvas-team-label" id="canvas-team-label">
+            <span class="team-tag">Minha Equipe</span>
+            <span id="canvas-team-name-label">—</span>
+        </div>
+        <div class="canvas-actions">
+            <button class="btn-action reset"  onclick="resetCanvas()">↺ Resetar tudo</button>
+            <button class="btn-action cancel" onclick="cancelCanvas()">✕ Cancelar</button>
+            <button class="btn-action save"   id="btn-save-canvas" onclick="saveAndReturn()">✓ Salvar</button>
         </div>
     </div>
 
@@ -1105,6 +1248,23 @@
 
 </div><!-- /page-canvas -->
 
+<!-- ════════════════════════════════════
+     PÁGINA RESPOSTAS
+════════════════════════════════════ -->
+<div id="page-respostas">
+    <div class="respostas-nav">
+        <h2>📋 Respostas das Equipes</h2>
+        <button class="btn-back" onclick="showPage('home')">← Voltar</button>
+    </div>
+    <div class="respostas-body" id="respostas-body">
+        <div class="respostas-empty">
+            <div class="big">⏳</div>
+            <p>Carregando respostas...</p>
+        </div>
+    </div>
+</div>
+
+
 <script>
 // ════════════════════════════════════════════
 //  ESTADO LOCAL
@@ -1140,17 +1300,20 @@ function onFirebaseReady(fn) {
 }
 
 onFirebaseReady(() => {
-    // Escuta equipes em tempo real
-    window._listenTeams(snapshot => {
-        const data = snapshot.exists() ? snapshot.data() : {};
-        occupiedTeams = {};
-        for (let i = 1; i <= 5; i++) {
-            const key = `equipe_${i}`;
-            occupiedTeams[i] = data[key] || null;
-        }
-        refreshTeamGrid();
-        refreshTabLabels();
-    });
+    try {
+        window._listenTeams(snapshot => {
+            const data = snapshot.exists() ? snapshot.data() : {};
+            occupiedTeams = {};
+            for (let i = 1; i <= 5; i++) {
+                const key = `equipe_${i}`;
+                occupiedTeams[i] = data[key] || null;
+            }
+            refreshTeamGrid();
+            refreshTabLabels();
+        });
+    } catch(e) {
+        console.warn('Firebase listener error:', e);
+    }
 });
 
 // ════════════════════════════════════════════
@@ -1223,7 +1386,16 @@ async function confirmTeam() {
     myTeamNumber = selectedModal;
     myTeamName   = name || `Equipe ${myTeamNumber}`;
 
-    await window._claimTeam(myTeamNumber, myTeamName);
+    // Tenta salvar no Firebase com timeout de segurança de 5s
+    try {
+        const savePromise = window._firebaseReady
+            ? window._claimTeam(myTeamNumber, myTeamName)
+            : Promise.resolve();
+        const timeout = new Promise(resolve => setTimeout(resolve, 5000));
+        await Promise.race([savePromise, timeout]);
+    } catch(e) {
+        console.warn('Firebase error ao registrar equipe:', e);
+    }
 
     // Preenche nome no header do canvas
     const nameInput = document.getElementById(`team-name-${myTeamNumber}`);
@@ -1233,7 +1405,6 @@ async function confirmTeam() {
     closeTeamModal();
     if (!window._tabsBuilt) buildTabs();
     showPage('canvas');
-    // Pequeno delay para o DOM do canvas renderizar antes de trocar aba
     setTimeout(() => {
         showTeam(myTeamNumber);
         listenMyCanvas();
@@ -1248,60 +1419,35 @@ async function confirmTeam() {
 //  PÁGINAS
 // ════════════════════════════════════════════
 function showPage(page) {
-    const home   = document.getElementById('page-home');
-    const canvas = document.getElementById('page-canvas');
-    if (page === 'home') {
-        home.style.display   = 'flex';
-        canvas.style.display = 'none';
-    } else {
-        home.style.display   = 'none';
-        canvas.style.display = 'block';
-    }
+    document.getElementById('page-home').style.display       = page === 'home'      ? 'flex'  : 'none';
+    document.getElementById('page-canvas').style.display     = page === 'canvas'    ? 'block' : 'none';
+    document.getElementById('page-respostas').style.display  = page === 'respostas' ? 'block' : 'none';
+    if (page === 'home') updateHomeCTA();
 }
 
 // ════════════════════════════════════════════
 //  ABAS
 // ════════════════════════════════════════════
 function buildTabs() {
-    const nav = document.getElementById('tab-nav');
-    // Remove abas antigas (mantém o btn-save-pdf à direita)
-    const right = nav.querySelector('.tab-nav-right');
-    nav.innerHTML = '';
-    for (let i = 1; i <= 5; i++) {
-        const btn = document.createElement('button');
-        btn.className = 'tab-btn' + (i === 1 ? ' active' : '');
-        btn.id = `tab-btn-${i}`;
-        btn.dataset.team = i;
-        btn.onclick = () => showTeam(i);
-        btn.innerHTML = `<span class="my-tag">MINHA EQUIPE</span>Equipe ${i}`;
-        nav.appendChild(btn);
-    }
-    nav.appendChild(right);
-    refreshTabLabels();
     window._tabsBuilt = true;
 }
 
-function refreshTabLabels() {
-    for (let i = 1; i <= 5; i++) {
-        const btn = document.getElementById(`tab-btn-${i}`);
-        if (!btn) continue;
-        const info = occupiedTeams[i];
-        const label = info && info.nome ? `Equipe ${i} — ${info.nome}` : `Equipe ${i}`;
-        const myTag = btn.querySelector('.my-tag');
-        btn.innerHTML = '';
-        if (myTag) btn.appendChild(myTag); else { const t = document.createElement('span'); t.className='my-tag'; t.textContent='MINHA EQUIPE'; btn.appendChild(t); }
-        btn.appendChild(document.createTextNode(label));
-        if (i === myTeamNumber) btn.classList.add('my-team'); else btn.classList.remove('my-team');
-    }
-}
+function refreshTabLabels() { /* não usado — sem abas múltiplas */ }
 
 function showTeam(n) {
     document.querySelectorAll('.canvas-page').forEach(el => el.classList.remove('active'));
-    document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
     const page = document.getElementById(`team-${n}`);
-    const btn  = document.getElementById(`tab-btn-${n}`);
     if (page) page.classList.add('active');
-    if (btn)  btn.classList.add('active');
+    // Atualiza label da action bar
+    const info = occupiedTeams[n] || {};
+    const label = info.nome ? `Equipe ${n} — ${info.nome}` : `Equipe ${n}`;
+    const el = document.getElementById('canvas-team-name-label');
+    if (el) el.textContent = label;
+}
+
+function updateActionBar() {
+    if (!myTeamNumber) return;
+    showTeam(myTeamNumber);
 }
 
 // ════════════════════════════════════════════
@@ -1474,14 +1620,164 @@ function showToast(msg, duration = 3000) {
     setTimeout(() => t.classList.remove('show'), duration);
 }
 
+
+// ════════════════════════════════════════════
+//  AÇÕES DO CANVAS
+// ════════════════════════════════════════════
+function resetCanvas() {
+    if (!confirm('Tem certeza? Todo o conteúdo preenchido será apagado.')) return;
+    const n = myTeamNumber;
+    ['no','impacto','solucao'].forEach(k => {
+        const el = document.getElementById(`ta-${n}-${k}`);
+        if (el) el.value = '';
+    });
+    for (let c = 1; c <= 4; c++) { const el = document.getElementById(`chk-${n}-${c}`); if (el) el.checked = false; }
+    for (let s = 1; s <= 7; s++) { const el = document.getElementById(`sol-${n}-${s}`); if (el) el.checked = false; }
+    const nameEl = document.getElementById(`team-name-${n}`);
+    if (nameEl) nameEl.value = myTeamName;
+    showToast('↺ Canvas resetado');
+}
+
+function cancelCanvas() {
+    if (confirm('Sair sem salvar? As alterações não salvas serão perdidas.')) {
+        showPage('home');
+    }
+}
+
+async function saveAndReturn() {
+    const btn = document.getElementById('btn-save-canvas');
+    btn.disabled = true;
+    btn.textContent = '⏳ Salvando...';
+    try {
+        await saveMyCanvas();
+        localStorage.setItem('sge_answered_team', myTeamNumber);
+        localStorage.setItem('sge_answered_name', myTeamName);
+        showToast('✅ Respostas salvas com sucesso!', 3000);
+        setTimeout(() => {
+            showPage('home');
+        }, 1200);
+    } catch(e) {
+        showToast('❌ Erro ao salvar. Tente novamente.', 3000);
+    }
+    btn.disabled = false;
+    btn.textContent = '✓ Salvar';
+}
+
+// ════════════════════════════════════════════
+//  HOME CTA — alterna botão se já respondeu
+// ════════════════════════════════════════════
+function updateHomeCTA() {
+    const answeredTeam = localStorage.getItem('sge_answered_team');
+    const answeredName = localStorage.getItem('sge_answered_name');
+    ['hero', 'bottom'].forEach(id => {
+        const wrap = document.getElementById(`cta-${id}-wrap`);
+        if (!wrap) return;
+        if (answeredTeam) {
+            wrap.innerHTML = `
+                <div style="display:flex;flex-direction:column;align-items:${id==='hero'?'flex-start':'center'};gap:10px;">
+                    <button class="btn-ver-respostas" onclick="viewMyAnswers()">
+                        👁 Visualizar minhas respostas
+                    </button>
+                    <span style="font-size:.82rem;opacity:.65;color:${id==='hero'?'#fff':'#718096'}">
+                        Equipe ${answeredTeam}${answeredName ? ' — ' + answeredName : ''} já respondeu
+                    </span>
+                </div>`;
+        } else {
+            wrap.innerHTML = `<button class="btn-primary" id="btn-cta-${id}" onclick="openTeamModal()">Entrar no Canvas <span class="arrow">→</span></button>`;
+        }
+    });
+}
+
+function viewMyAnswers() {
+    const n = localStorage.getItem('sge_answered_team');
+    if (!n) return;
+    myTeamNumber = parseInt(n);
+    myTeamName   = localStorage.getItem('sge_answered_name') || `Equipe ${n}`;
+    enableMyTeamFields();
+    showPage('canvas');
+    showTeam(myTeamNumber);
+}
+
+// ════════════════════════════════════════════
+//  PÁGINA RESPOSTAS — todas as equipes
+// ════════════════════════════════════════════
+const SOLUCAO_LABELS = [
+    'Parametrização / Ajuste no Sistema',
+    'Mudança de Fluxo Interno',
+    'Capacitação / Treinamento / Workshop',
+    'Criação de nova ferramenta ou automação',
+    'Melhorar alertas e lembretes para o aluno',
+    'Criar guias visuais, manuais ou passo a passo',
+    'Melhorar ou adicionar função nos sistemas atuais'
+];
+
+async function showRespostas() {
+    showPage('respostas');
+    const body = document.getElementById('respostas-body');
+    body.innerHTML = '<div class="respostas-empty"><div class="big">⏳</div><p>Carregando respostas...</p></div>';
+
+    // Busca todos os canvas do Firebase
+    try {
+        let hasAny = false;
+        let html_out = '';
+        for (let i = 1; i <= 5; i++) {
+            const info = occupiedTeams[i];
+            if (!info || !info.ocupada) continue;
+
+            // Pega dados do canvas via snapshot atual
+            const d = await new Promise(resolve => {
+                const unsub = window._listenCanvas(i, snap => {
+                    unsub();
+                    resolve(snap.exists() ? snap.data() : null);
+                });
+            });
+
+            hasAny = true;
+            const nome = (d && d.nome) || info.nome || `Equipe ${i}`;
+            const chips = SOLUCAO_LABELS.filter((_, idx) => d && d[`sol${idx+1}`])
+                .map(l => `<span class="chip">${l}</span>`).join('');
+
+            html_out += `
+            <div class="resposta-card">
+                <div class="resposta-card-header">
+                    <div class="eq-num">${i}</div>
+                    <h3>${nome}</h3>
+                    <span>Equipe ${i}</span>
+                </div>
+                <div class="resposta-fields">
+                    <div class="resposta-field">
+                        <label>🔴 O Nó do Processo (O Problema)</label>
+                        <p class="${d && d.no ? '' : 'empty'}">${(d && d.no) || 'Não preenchido'}</p>
+                    </div>
+                    <div class="resposta-field">
+                        <label>🟠 O Impacto na Ponta (A Consequência)</label>
+                        <p class="${d && d.impacto ? '' : 'empty'}">${(d && d.impacto) || 'Não preenchido'}</p>
+                    </div>
+                    <div class="resposta-field">
+                        <label>🟢 A Solução Prática (A Ideia)</label>
+                        <p class="${d && d.solucao ? '' : 'empty'}">${(d && d.solucao) || 'Não preenchido'}</p>
+                    </div>
+                    ${chips ? `<div class="resposta-field"><label>🔵 Tipos de Solução</label><div class="resposta-chips">${chips}</div></div>` : ''}
+                </div>
+            </div>`;
+        }
+
+        body.innerHTML = hasAny ? html_out : '<div class="respostas-empty"><div class="big">📭</div><p>Nenhuma equipe respondeu ainda.</p></div>';
+    } catch(e) {
+        body.innerHTML = '<div class="respostas-empty"><div class="big">❌</div><p>Erro ao carregar respostas.</p></div>';
+    }
+}
+
 // ════════════════════════════════════════════
 //  INIT
 // ════════════════════════════════════════════
 document.addEventListener('DOMContentLoaded', () => {
     buildTabs();
     // Garante estado inicial correto
-    document.getElementById('page-home').style.display   = 'flex';
-    document.getElementById('page-canvas').style.display = 'none';
+    document.getElementById('page-home').style.display      = 'flex';
+    document.getElementById('page-canvas').style.display    = 'none';
+    document.getElementById('page-respostas').style.display = 'none';
+    updateHomeCTA();
     // Escuta todos os canvas em read-only para exibir ao navegar pelas abas
     onFirebaseReady(() => {
         for (let i = 1; i <= 5; i++) listenTeamCanvas(i);
