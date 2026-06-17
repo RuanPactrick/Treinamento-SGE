@@ -1711,34 +1711,36 @@ const SOLUCAO_LABELS = [
     'Melhorar ou adicionar função nos sistemas atuais'
 ];
 
-async function showRespostas() {
+function showRespostas() {
     showPage('respostas');
     const body = document.getElementById('respostas-body');
     body.innerHTML = '<div class="respostas-empty"><div class="big">⏳</div><p>Carregando respostas...</p></div>';
 
-    // Busca todos os canvas do Firebase
-    try {
+    // Cancela listeners anteriores da página de respostas
+    if (window._respostasListeners) {
+        window._respostasListeners.forEach(u => u());
+    }
+    window._respostasListeners = [];
+
+    // Dados em memória por equipe
+    const dadosEquipes = {};
+    let iniciado = false;
+
+    function renderAll() {
         let hasAny = false;
-        let html_out = '';
+        let out = '';
         for (let i = 1; i <= 5; i++) {
             const info = occupiedTeams[i];
             if (!info || !info.ocupada) continue;
-
-            // Pega dados do canvas via snapshot atual
-            const d = await new Promise(resolve => {
-                const unsub = window._listenCanvas(i, snap => {
-                    unsub();
-                    resolve(snap.exists() ? snap.data() : null);
-                });
-            });
-
             hasAny = true;
-            const nome = (d && d.nome) || info.nome || `Equipe ${i}`;
-            const chips = SOLUCAO_LABELS.filter((_, idx) => d && d[`sol${idx+1}`])
+            const d    = dadosEquipes[i] || {};
+            const nome = d.nome || info.nome || `Equipe ${i}`;
+            const chips = SOLUCAO_LABELS
+                .filter((_, idx) => d[`sol${idx+1}`])
                 .map(l => `<span class="chip">${l}</span>`).join('');
 
-            html_out += `
-            <div class="resposta-card">
+            out += `
+            <div class="resposta-card" id="resposta-card-${i}">
                 <div class="resposta-card-header">
                     <div class="eq-num">${i}</div>
                     <h3>${nome}</h3>
@@ -1747,25 +1749,50 @@ async function showRespostas() {
                 <div class="resposta-fields">
                     <div class="resposta-field">
                         <label>🔴 O Nó do Processo (O Problema)</label>
-                        <p class="${d && d.no ? '' : 'empty'}">${(d && d.no) || 'Não preenchido'}</p>
+                        <p class="${d.no ? '' : 'empty'}">${d.no || 'Não preenchido'}</p>
                     </div>
                     <div class="resposta-field">
                         <label>🟠 O Impacto na Ponta (A Consequência)</label>
-                        <p class="${d && d.impacto ? '' : 'empty'}">${(d && d.impacto) || 'Não preenchido'}</p>
+                        <p class="${d.impacto ? '' : 'empty'}">${d.impacto || 'Não preenchido'}</p>
                     </div>
                     <div class="resposta-field">
                         <label>🟢 A Solução Prática (A Ideia)</label>
-                        <p class="${d && d.solucao ? '' : 'empty'}">${(d && d.solucao) || 'Não preenchido'}</p>
+                        <p class="${d.solucao ? '' : 'empty'}">${d.solucao || 'Não preenchido'}</p>
                     </div>
                     ${chips ? `<div class="resposta-field"><label>🔵 Tipos de Solução</label><div class="resposta-chips">${chips}</div></div>` : ''}
                 </div>
             </div>`;
         }
-
-        body.innerHTML = hasAny ? html_out : '<div class="respostas-empty"><div class="big">📭</div><p>Nenhuma equipe respondeu ainda.</p></div>';
-    } catch(e) {
-        body.innerHTML = '<div class="respostas-empty"><div class="big">❌</div><p>Erro ao carregar respostas.</p></div>';
+        body.innerHTML = hasAny
+            ? out
+            : '<div class="respostas-empty"><div class="big">📭</div><p>Nenhuma equipe respondeu ainda.</p></div>';
     }
+
+    // Escuta cada equipe ocupada com listener contínuo
+    for (let i = 1; i <= 5; i++) {
+        const unsub = window._listenCanvas(i, snap => {
+            dadosEquipes[i] = snap.exists() ? snap.data() : {};
+            if (iniciado) renderAll(); // re-renderiza ao vivo
+        });
+        window._respostasListeners.push(unsub);
+    }
+
+    // Também escuta mudanças nas equipes (se nova equipe entrar)
+    const unsubTeams = window._listenTeams(snap => {
+        const data = snap.exists() ? snap.data() : {};
+        occupiedTeams = {};
+        for (let i = 1; i <= 5; i++) {
+            occupiedTeams[i] = data[`equipe_${i}`] || null;
+        }
+        if (iniciado) renderAll();
+    });
+    window._respostasListeners.push(unsubTeams);
+
+    // Aguarda um tick para todos os snapshots iniciais chegarem, depois renderiza
+    setTimeout(() => {
+        iniciado = true;
+        renderAll();
+    }, 800);
 }
 
 // ════════════════════════════════════════════
