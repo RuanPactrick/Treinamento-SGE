@@ -1115,9 +1115,13 @@ async function confirmTeam() {
 
     enableMyTeamFields();
     closeTeamModal();
+    if (!window._tabsBuilt) buildTabs();
     showPage('canvas');
-    showTeam(myTeamNumber);
-    listenMyCanvas();
+    // Pequeno delay para o DOM do canvas renderizar antes de trocar aba
+    setTimeout(() => {
+        showTeam(myTeamNumber);
+        listenMyCanvas();
+    }, 50);
 
     confirmBtn.disabled = false;
     confirmBtn.textContent = 'Confirmar';
@@ -1128,8 +1132,15 @@ async function confirmTeam() {
 //  PÁGINAS
 // ════════════════════════════════════════════
 function showPage(page) {
-    document.getElementById('page-home').style.display   = page === 'home'   ? '' : 'none';
-    document.getElementById('page-canvas').style.display = page === 'canvas' ? '' : 'none';
+    const home   = document.getElementById('page-home');
+    const canvas = document.getElementById('page-canvas');
+    if (page === 'home') {
+        home.style.display   = 'flex';
+        canvas.style.display = 'none';
+    } else {
+        home.style.display   = 'none';
+        canvas.style.display = 'block';
+    }
 }
 
 // ════════════════════════════════════════════
@@ -1151,6 +1162,7 @@ function buildTabs() {
     }
     nav.appendChild(right);
     refreshTabLabels();
+    window._tabsBuilt = true;
 }
 
 function refreshTabLabels() {
@@ -1351,7 +1363,9 @@ function showToast(msg, duration = 3000) {
 // ════════════════════════════════════════════
 document.addEventListener('DOMContentLoaded', () => {
     buildTabs();
-    showPage('home');
+    // Garante estado inicial correto
+    document.getElementById('page-home').style.display   = 'flex';
+    document.getElementById('page-canvas').style.display = 'none';
     // Escuta todos os canvas em read-only para exibir ao navegar pelas abas
     onFirebaseReady(() => {
         for (let i = 1; i <= 5; i++) listenTeamCanvas(i);
