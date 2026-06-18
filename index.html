@@ -1083,6 +1083,22 @@
             font-weight: 600;
         }
 
+
+        .rv-btn-canvas {
+            background: #fff;
+            color: var(--navy);
+            border: none;
+            border-radius: 8px;
+            padding: 8px 18px;
+            font-size: .82rem;
+            font-weight: 700;
+            cursor: pointer;
+            font-family: inherit;
+            flex-shrink: 0;
+            transition: background .15s;
+        }
+        .rv-btn-canvas:hover { background: #ebf4ff; }
+
         @media print {
             #page-home, .tab-nav, .btn-save-pdf { display: none !important; }
             .canvas-page { display: block !important; page-break-after: always; }
@@ -2172,6 +2188,7 @@ function renderRespostas(body, eqData, canvas) {
             + '<div class="rv-num">' + i + '</div>'
             + '<h3>' + nome + '</h3>'
             + '<div class="rv-fases">' + fasesHtml + '</div>'
+            + '<button class="rv-btn-canvas" onclick="openCanvasPage(' + i + ')">🗂 Ver Canvas Completo</button>'
             + '</div>'
             + '<div class="rv-grid">'
             // Quadrante 1
@@ -2306,6 +2323,117 @@ function openCanvasView(n) {
 
 function closeCanvasView() {
     document.getElementById('modal-canvas-view').classList.remove('show');
+}
+
+
+// ════════════════════════════════════════════
+//  ABRIR CANVAS COMPLETO EM NOVA ABA
+// ════════════════════════════════════════════
+function openCanvasPage(n) {
+    var d    = _canvasViewData[n]   || {};
+    var info = (_canvasViewEqData && _canvasViewEqData['equipe_' + n]) || {};
+    var nome = d.nome || info.nome || ('Equipe ' + n);
+
+    var FASES = ['Captação/Ingresso','V. Acadêmica','Financeiro','Certificação'];
+
+    function chk(key) { return d[key] ? 'checked' : ''; }
+    function val(key) { return (d[key] || '').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+    var solucaoOpts = [
+        ['sol1','Parametrização / Ajuste no Sistema','COEP/TNTE'],
+        ['sol2','Mudança de Fluxo Interno','Rotina da própria Unidade'],
+        ['sol3','Capacitação / Treinamento / Workshop','Alinhamento da equipe e padronização de processos'],
+        ['sol4','Criação de nova ferramenta ou automação','Adotar nova solução ou automatizar tarefa repetitiva'],
+        ['sol5','Melhorar alertas e lembretes para o aluno','Comunicações mais claras, e-mails ou mensagens'],
+        ['sol6','Criar guias visuais, manuais ou passo a passo','Cartilhas, vídeos curtos ou fluxogramas'],
+        ['sol7','Melhorar ou adicionar função nos sistemas atuais','Mudar tela, criar aviso visual ou melhorar portal']
+    ];
+
+    var solHtml = '';
+    for (var s = 0; s < solucaoOpts.length; s++) {
+        var opt = solucaoOpts[s];
+        solHtml += '<div class="action-item">'
+            + '<input type="checkbox" ' + chk(opt[0]) + ' disabled> '
+            + '<span><strong>' + opt[1] + '</strong> — ' + opt[2] + '</span>'
+            + '</div>';
+    }
+
+    var faseHtml = '';
+    for (var f = 0; f < 4; f++) {
+        faseHtml += '<div class="checkbox-item">'
+            + '<input type="checkbox" ' + chk('chk' + (f+1)) + ' disabled> ' + FASES[f]
+            + '</div>';
+    }
+
+    var pageHTML = '<!DOCTYPE html><html lang="pt-BR"><head>'
+        + '<meta charset="UTF-8">'
+        + '<meta name="viewport" content="width=device-width,initial-scale=1">'
+        + '<title>Canvas — ' + nome + '</title>'
+        + '<style>'
+        + '*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}'
+        + 'body{font-family:Segoe UI,Helvetica,Arial,sans-serif;background:#f0f4f8;color:#2d3748;padding:20px}'
+        + '.print-bar{background:#1a365d;color:#fff;padding:12px 24px;border-radius:10px;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between}'
+        + '.print-bar span{font-size:.9rem;opacity:.8}'
+        + '.btn-print{background:#fff;color:#1a365d;border:none;border-radius:8px;padding:8px 20px;font-size:.88rem;font-weight:700;cursor:pointer;font-family:inherit}'
+        + '.btn-print:hover{background:#ebf4ff}'
+        + '.canvas-wrapper{border:3px solid #1a365d;border-radius:8px;padding:20px;display:flex;flex-direction:column;background:#fff;max-width:1100px;margin:0 auto}'
+        + '.header{display:flex;justify-content:space-between;align-items:center;border-bottom:3px solid #1a365d;padding-bottom:15px;margin-bottom:20px}'
+        + '.header-left{display:flex;align-items:center;gap:20px}'
+        + '.logo-senai{height:45px;object-fit:contain}'
+        + '.title-area h1{font-size:28px;color:#1a365d;text-transform:uppercase;letter-spacing:1px}'
+        + '.title-area p{font-size:14px;color:#718096;margin-top:4px}'
+        + '.meta-area{display:flex;gap:25px;align-items:center}'
+        + '.meta-box{font-size:16px;font-weight:bold}'
+        + '.meta-box .team-name{border-bottom:2px solid #2c3e50;padding:2px 6px;font-size:16px;color:#1a365d}'
+        + '.checkbox-group{display:flex;gap:15px;background:#f8f9fa;padding:10px;border-radius:6px;border:1px solid #e2e8f0}'
+        + '.checkbox-item{display:flex;align-items:center;gap:5px;font-size:13px}'
+        + '.grid-container{display:grid;grid-template-columns:1fr 1fr;grid-template-rows:1fr 1fr;gap:20px;flex-grow:1;min-height:400px}'
+        + '.card{border:2px dashed #cbd5e1;border-radius:6px;padding:15px;display:flex;flex-direction:column;background:#fff}'
+        + '.card-title{font-size:16px;font-weight:bold;color:#1a365d;margin-bottom:5px;text-transform:uppercase;border-bottom:1px solid #edf2f7;padding-bottom:5px}'
+        + '.card-instruction{font-size:12px;color:#718096;font-style:italic;margin-bottom:8px}'
+        + '.card-content{flex-grow:1}'
+        + '.card-text{font-size:13px;color:#2c3e50;line-height:1.7;white-space:pre-wrap;min-height:80px}'
+        + '.card-text.empty{color:#a0aec0;font-style:italic}'
+        + '.action-options{display:flex;flex-direction:column;gap:8px}'
+        + '.action-item{display:flex;align-items:flex-start;gap:8px;font-size:12px;line-height:1.3}'
+        + '.action-item input{transform:scale(1.2);margin-top:2px;flex-shrink:0}'
+        + '@media print{.print-bar{display:none!important}body{padding:0;background:#fff}.canvas-wrapper{border-radius:0}}'
+        + '</style></head><body>'
+        + '<div class="print-bar">'
+        + '<span>Canvas da Equipe ' + n + ' — ' + nome + '</span>'
+        + '<button class="btn-print" onclick="window.print()">🖨 Imprimir / Salvar PDF</button>'
+        + '</div>'
+        + '<div class="canvas-wrapper">'
+        + '<div class="header">'
+        + '<div class="header-left">'
+        + '<img src="https://i.imgur.com/lO0qBOw.jpeg" alt="Logo SENAI" class="logo-senai">'
+        + '<div class="title-area"><h1>Canvas da Jornada SGE</h1><p>Oficina de Alinhamento, Processos e Inovação Educacional</p></div>'
+        + '</div>'
+        + '<div class="meta-area">'
+        + '<div class="meta-box">EQUIPE <span style="color:#1a365d;font-size:20px">#' + n + '</span> — <span class="team-name">' + nome + '</span></div>'
+        + '<div class="checkbox-group">' + faseHtml + '</div>'
+        + '</div></div>'
+        + '<div class="grid-container">'
+        + '<div class="card"><div class="card-title">1. O Nó do Processo (O Problema)</div>'
+        + '<div class="card-instruction">Qual é a maior dificuldade, lentidão ou retrabalho que a unidade enfrenta hoje no SGE?</div>'
+        + '<div class="card-content"><p class="card-text' + (d.no ? '' : ' empty') + '">' + (val('no') || 'Não preenchido') + '</p></div></div>'
+        + '<div class="card"><div class="card-title">2. O Impacto na Ponta (A Consequência)</div>'
+        + '<div class="card-instruction">Como essa situação atrapalha a rotina da unidade ou prejudica o aluno/cliente?</div>'
+        + '<div class="card-content"><p class="card-text' + (d.impacto ? '' : ' empty') + '">' + (val('impacto') || 'Não preenchido') + '</p></div></div>'
+        + '<div class="card"><div class="card-title">3. A Solução Prática (A Ideia)</div>'
+        + '<div class="card-instruction">Como podemos resolver ou mitigar essa dor de forma viável?</div>'
+        + '<div class="card-content"><p class="card-text' + (d.solucao ? '' : ' empty') + '">' + (val('solucao') || 'Não preenchido') + '</p></div></div>'
+        + '<div class="card"><div class="card-title">4. Tipo de Solução (O Formato)</div>'
+        + '<div class="card-instruction">De quem depende a implementação? Marque as opções:</div>'
+        + '<div class="card-content"><div class="action-options">' + solHtml + '</div></div></div>'
+        + '</div></div>'
+        + '</body></html>';
+
+    var w = window.open('', '_blank');
+    if (w) {
+        w.document.write(pageHTML);
+        w.document.close();
+    }
 }
 
 // ════════════════════════════════════════════
