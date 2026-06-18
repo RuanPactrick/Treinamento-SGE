@@ -19,6 +19,7 @@
         };
         firebase.initializeApp(firebaseConfig);
         const db = firebase.firestore();
+        window.db = db;
 
         window._listenTeams = function(callback) {
             return db.collection("sessao").doc("equipes")
@@ -1840,87 +1841,111 @@ const SOLUCAO_LABELS = [
 
 function showRespostas() {
     showPage('respostas');
-    const body = document.getElementById('respostas-body');
+    var body = document.getElementById('respostas-body');
     body.innerHTML = '<div class="respostas-empty"><div class="big">⏳</div><p>Carregando respostas...</p></div>';
 
+    // Cancela listeners anteriores
     if (window._respostasListeners) {
-        window._respostasListeners.forEach(u => { try { u(); } catch(e){} });
+        window._respostasListeners.forEach(function(u){ try{ u(); }catch(e){} });
     }
     window._respostasListeners = [];
 
-    var dadosEquipes  = {};
-    var dadosEquipes2 = {}; // equipes registradas
-
-    function renderAll() {
-        var hasAny = false;
-        var out = '';
-        for (var i = 1; i <= 5; i++) {
-            var d    = dadosEquipes[i];
-            var info = dadosEquipes2[i];
-            var temDados   = d && (d.no || d.impacto || d.solucao || d.nome);
-            var registrada = info && info.ocupada;
-            if (!temDados && !registrada) continue;
-            hasAny = true;
-            var nome = (d && d.nome) || (info && info.nome) || ('Equipe ' + i);
-            var chips = '';
-            if (d) {
-                for (var s = 0; s < SOLUCAO_LABELS.length; s++) {
-                    if (d['sol' + (s+1)]) chips += '<span class="chip">' + SOLUCAO_LABELS[s] + '</span>';
-                }
-            }
-            out += '<div class="resposta-card">'
-                + '<div class="resposta-card-header">'
-                + '<div class="eq-num">' + i + '</div>'
-                + '<h3>' + nome + '</h3><span>Equipe ' + i + '</span>'
-                + '</div><div class="resposta-fields">'
-                + '<div class="resposta-field"><label>🔴 O Nó do Processo (O Problema)</label>'
-                + '<p class="' + (d&&d.no?'':'empty') + '">' + (d&&d.no||'Não preenchido') + '</p></div>'
-                + '<div class="resposta-field"><label>🟠 O Impacto na Ponta (A Consequência)</label>'
-                + '<p class="' + (d&&d.impacto?'':'empty') + '">' + (d&&d.impacto||'Não preenchido') + '</p></div>'
-                + '<div class="resposta-field"><label>🟢 A Solução Prática (A Ideia)</label>'
-                + '<p class="' + (d&&d.solucao?'':'empty') + '">' + (d&&d.solucao||'Não preenchido') + '</p></div>'
-                + (chips ? '<div class="resposta-field"><label>🔵 Tipos de Solução</label><div class="resposta-chips">' + chips + '</div></div>' : '')
-                + '</div></div>';
+    // Aguarda Firebase estar pronto e busca tudo
+    function buscarEExibir() {
+        if (!window._firebaseReady || !window.db) {
+            setTimeout(buscarEExibir, 300);
+            return;
         }
-        body.innerHTML = hasAny ? out
-            : '<div class="respostas-empty"><div class="big">📭</div><p>Nenhuma equipe respondeu ainda.</p></div>';
-    }
 
-    // 1. Leitura direta imediata via _getAllData
-    if (window._firebaseReady && window._getAllData) {
-        window._getAllData().then(function(result) {
-            var eq = result.equipes || {};
-            for (var i = 1; i <= 5; i++) {
-                dadosEquipes2[i] = eq['equipe_' + i] || null;
-                dadosEquipes[i]  = result.canvas[i]  || {};
+        var db = window.db;
+        var equipesRef = db.collection('sessao').doc('equipes');
+        var canvasRefs = [1,2,3,4,5].map(function(i){
+            return db.collection('canvas').doc('equipe_' + i);
+        });
+
+        Promise.all([
+            equipesRef.get(),
+            canvasRefs[0].get(),
+            canvasRefs[1].get(),
+            canvasRefs[2].get(),
+            canvasRefs[3].get(),
+            canvasRefs[4].get()
+        ]).then(function(snaps) {
+            var eqData  = snaps[0].exists() ? snaps[0].data() : {};
+            var canvas  = {};
+            for (var i = 0; i < 5; i++) {
+                canvas[i+1] = snaps[i+1].exists() ? snaps[i+1].data() : null;
             }
-            renderAll();
-        }).catch(function(e) {
-            console.warn('Erro _getAllData:', e);
-            renderAll();
+            renderRespostas(body, eqData, canvas);
+
+            // Listeners ao vivo para atualizar em tempo real
+            var unsubEq = equipesRef.onSnapshot(function(snap) {
+                eqData = snap.exists() ? snap.data() : {};
+                renderRespostas(body, eqData, canvas);
+            });
+            window._respostasListeners.push(unsubEq);
+
+            for (var j = 1; j <= 5; j++) {
+                (function(n) {
+                    var unsub = db.collection('canvas').doc('equipe_' + n).onSnapshot(function(snap) {
+                        canvas[n] = snap.exists() ? snap.data() : null;
+                        renderRespostas(body, eqData, canvas);
+                    });
+                    window._respostasListeners.push(unsub);
+                })(j);
+            }
+
+        }).catch(function(err) {
+            console.error('Erro ao buscar respostas:', err);
+            body.innerHTML = '<div class="respostas-empty"><div class="big">❌</div><p>Erro ao carregar: ' + err.message + '</p></div>';
         });
     }
 
-    // 2. Listeners ao vivo para atualizações em tempo real
+    buscarEExibir();
+}
+
+function renderRespostas(body, eqData, canvas) {
+    var hasAny = false;
+    var out = '';
+
     for (var i = 1; i <= 5; i++) {
-        (function(n) {
-            var unsub = window._listenCanvas(n, function(snap) {
-                dadosEquipes[n] = snap.exists() ? snap.data() : {};
-                renderAll();
-            });
-            window._respostasListeners.push(unsub);
-        })(i);
+        var d    = canvas[i];
+        var info = eqData['equipe_' + i];
+        var temDados   = d && (d.no || d.impacto || d.solucao || d.nome);
+        var registrada = info && info.ocupada;
+        if (!temDados && !registrada) continue;
+
+        hasAny = true;
+        var nome = (d && d.nome) || (info && info.nome) || ('Equipe ' + i);
+        var chips = '';
+        if (d) {
+            for (var s = 0; s < SOLUCAO_LABELS.length; s++) {
+                if (d['sol' + (s+1)]) {
+                    chips += '<span class="chip">' + SOLUCAO_LABELS[s] + '</span>';
+                }
+            }
+        }
+
+        out += '<div class="resposta-card">'
+            + '<div class="resposta-card-header">'
+            + '<div class="eq-num">' + i + '</div>'
+            + '<h3>' + nome + '</h3>'
+            + '<span>Equipe ' + i + '</span>'
+            + '</div>'
+            + '<div class="resposta-fields">'
+            + '<div class="resposta-field"><label>🔴 Nó do Processo</label>'
+            + '<p class="' + (d&&d.no ? '' : 'empty') + '">' + (d&&d.no || 'Não preenchido') + '</p></div>'
+            + '<div class="resposta-field"><label>🟠 Impacto na Ponta</label>'
+            + '<p class="' + (d&&d.impacto ? '' : 'empty') + '">' + (d&&d.impacto || 'Não preenchido') + '</p></div>'
+            + '<div class="resposta-field"><label>🟢 Solução Prática</label>'
+            + '<p class="' + (d&&d.solucao ? '' : 'empty') + '">' + (d&&d.solucao || 'Não preenchido') + '</p></div>'
+            + (chips ? '<div class="resposta-field"><label>🔵 Tipos de Solução</label><div class="resposta-chips">' + chips + '</div></div>' : '')
+            + '</div></div>';
     }
 
-    // Listener equipes ao vivo
-    var unsubEq = window._listenTeams(function(snap) {
-        var data = snap.exists() ? snap.data() : {};
-        for (var i = 1; i <= 5; i++) {
-            dadosEquipes2[i] = data['equipe_' + i] || null;
-        }
-        renderAll();
-    });
-    window._respostasListeners.push(unsubEq);
+    body.innerHTML = hasAny
+        ? out
+        : '<div class="respostas-empty"><div class="big">📭</div><p>Nenhuma equipe respondeu ainda.</p></div>';
 }
 
 
