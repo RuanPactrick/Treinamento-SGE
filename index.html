@@ -873,6 +873,216 @@
             40%,80%  { transform: translateX(8px); }
         }
 
+
+        /* ── MODAL CANVAS VISUAL ── */
+        #modal-canvas-view {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,.65);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            overflow-y: auto;
+        }
+        #modal-canvas-view.show { display: flex; }
+        .canvas-view-box {
+            background: #fff;
+            border-radius: 16px;
+            width: 100%;
+            max-width: 900px;
+            box-shadow: 0 24px 80px rgba(0,0,0,.35);
+            overflow: hidden;
+            animation: popIn .25s ease;
+        }
+        .canvas-view-header {
+            background: var(--navy);
+            color: #fff;
+            padding: 18px 28px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+        }
+        .canvas-view-header h2 { font-size: 1.1rem; font-weight: 800; }
+        .canvas-view-header .cv-meta { font-size: .82rem; opacity: .75; }
+        .canvas-view-close {
+            background: rgba(255,255,255,.15);
+            border: 1px solid rgba(255,255,255,.3);
+            color: #fff;
+            border-radius: 8px;
+            padding: 6px 16px;
+            font-size: .85rem;
+            font-weight: 600;
+            cursor: pointer;
+            font-family: inherit;
+            transition: background .15s;
+            flex-shrink: 0;
+        }
+        .canvas-view-close:hover { background: rgba(255,255,255,.28); }
+        .canvas-view-body { padding: 28px; }
+        .cv-fase-row {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            margin-bottom: 24px;
+        }
+        .cv-fase {
+            background: #ebf4ff;
+            color: #2b6cb0;
+            border-radius: 8px;
+            padding: 6px 16px;
+            font-size: .82rem;
+            font-weight: 700;
+            border: 2px solid #bee3f8;
+        }
+        .cv-fase.active {
+            background: var(--navy);
+            color: #fff;
+            border-color: var(--navy);
+        }
+        .cv-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: 1fr 1fr;
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+        .cv-card {
+            border: 2px solid #e2e8f0;
+            border-radius: 10px;
+            padding: 16px;
+            background: #fafafa;
+        }
+        .cv-card-title {
+            font-size: .72rem;
+            font-weight: 800;
+            color: var(--navy);
+            text-transform: uppercase;
+            letter-spacing: .8px;
+            margin-bottom: 8px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .cv-card-title.red   { color: #c53030; border-color: #fed7d7; }
+        .cv-card-title.orange{ color: #c05621; border-color: #fbd38d; }
+        .cv-card-title.green { color: #276749; border-color: #c6f6d5; }
+        .cv-card-title.blue  { color: #2b6cb0; border-color: #bee3f8; }
+        .cv-card-text {
+            font-size: .88rem;
+            color: #2d3748;
+            line-height: 1.7;
+            white-space: pre-wrap;
+            min-height: 60px;
+        }
+        .cv-card-text.empty { color: #a0aec0; font-style: italic; }
+        .cv-sol-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 6px; }
+        .cv-sol-chip {
+            background: #ebf4ff;
+            color: #2b6cb0;
+            border-radius: 20px;
+            padding: 4px 12px;
+            font-size: .75rem;
+            font-weight: 600;
+        }
+
+
+        /* ── CANVAS VISUAL RESPOSTAS ── */
+        .rv-equipe {
+            margin-bottom: 48px;
+        }
+        .rv-header {
+            background: var(--navy);
+            color: #fff;
+            padding: 16px 28px;
+            border-radius: 12px 12px 0 0;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+        .rv-header .rv-num {
+            width: 40px; height: 40px;
+            background: #63b3ed;
+            color: #1a365d;
+            border-radius: 50%;
+            font-weight: 800;
+            font-size: 1.1rem;
+            display: flex; align-items: center; justify-content: center;
+            flex-shrink: 0;
+        }
+        .rv-header h3 { font-size: 1.1rem; font-weight: 800; }
+        .rv-header .rv-fases { margin-left: auto; display: flex; gap: 6px; flex-wrap: wrap; }
+        .rv-fase-chip {
+            background: rgba(255,255,255,.15);
+            border: 1px solid rgba(255,255,255,.3);
+            color: #fff;
+            border-radius: 20px;
+            padding: 3px 12px;
+            font-size: .72rem;
+            font-weight: 700;
+        }
+        .rv-fase-chip.active {
+            background: #63b3ed;
+            border-color: #63b3ed;
+            color: #1a365d;
+        }
+        .rv-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: auto auto;
+            gap: 0;
+            border: 2px solid var(--navy);
+            border-top: none;
+            border-radius: 0 0 12px 12px;
+            overflow: hidden;
+            background: #fff;
+        }
+        .rv-quadrant {
+            padding: 20px 24px;
+            border-right: 1px solid #e2e8f0;
+            border-bottom: 1px solid #e2e8f0;
+            min-height: 140px;
+            display: flex;
+            flex-direction: column;
+        }
+        .rv-quadrant:nth-child(2n) { border-right: none; }
+        .rv-quadrant:nth-child(3),
+        .rv-quadrant:nth-child(4) { border-bottom: none; }
+        .rv-qtitle {
+            font-size: .72rem;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: .8px;
+            margin-bottom: 10px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #e2e8f0;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .rv-qtitle.red    { color: #c53030; border-color: #fed7d7; }
+        .rv-qtitle.orange { color: #c05621; border-color: #fbd38d; }
+        .rv-qtitle.green  { color: #276749; border-color: #c6f6d5; }
+        .rv-qtitle.blue   { color: #2b6cb0; border-color: #bee3f8; }
+        .rv-qtext {
+            font-size: .9rem;
+            color: #2d3748;
+            line-height: 1.7;
+            white-space: pre-wrap;
+            flex: 1;
+        }
+        .rv-qtext.empty { color: #a0aec0; font-style: italic; }
+        .rv-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+        .rv-chip {
+            background: #ebf4ff;
+            color: #2b6cb0;
+            border-radius: 20px;
+            padding: 4px 12px;
+            font-size: .75rem;
+            font-weight: 600;
+        }
+
         @media print {
             #page-home, .tab-nav, .btn-save-pdf { display: none !important; }
             .canvas-page { display: block !important; page-break-after: always; }
@@ -1378,6 +1588,23 @@
             <div class="big">⏳</div>
             <p>Carregando respostas...</p>
         </div>
+    </div>
+</div>
+
+
+<!-- ════════════════════════════════════
+     MODAL CANVAS VISUAL
+════════════════════════════════════ -->
+<div id="modal-canvas-view">
+    <div class="canvas-view-box">
+        <div class="canvas-view-header">
+            <div>
+                <h2 id="cv-title">Canvas da Equipe</h2>
+                <span class="cv-meta" id="cv-meta"></span>
+            </div>
+            <button class="canvas-view-close" onclick="closeCanvasView()">✕ Fechar</button>
+        </div>
+        <div class="canvas-view-body" id="cv-body"></div>
     </div>
 </div>
 
@@ -1905,6 +2132,7 @@ function showRespostas() {
 }
 
 function renderRespostas(body, eqData, canvas) {
+    var FASES = ['Captação/Ingresso','V. Acadêmica','Financeiro','Certificação'];
     var hasAny = false;
     var out = '';
 
@@ -1917,35 +2145,66 @@ function renderRespostas(body, eqData, canvas) {
 
         hasAny = true;
         var nome = (d && d.nome) || (info && info.nome) || ('Equipe ' + i);
+
+        // Fases
+        var fasesHtml = '';
+        for (var f = 0; f < 4; f++) {
+            var ativo = d && d['chk' + (f+1)];
+            fasesHtml += '<span class="rv-fase-chip' + (ativo ? ' active' : '') + '">' + FASES[f] + '</span>';
+        }
+
+        // Chips de solução
         var chips = '';
         if (d) {
             for (var s = 0; s < SOLUCAO_LABELS.length; s++) {
                 if (d['sol' + (s+1)]) {
-                    chips += '<span class="chip">' + SOLUCAO_LABELS[s] + '</span>';
+                    chips += '<span class="rv-chip">' + SOLUCAO_LABELS[s] + '</span>';
                 }
             }
         }
 
-        out += '<div class="resposta-card">'
-            + '<div class="resposta-card-header">'
-            + '<div class="eq-num">' + i + '</div>'
+        var no      = (d && d.no)      || '';
+        var impacto = (d && d.impacto) || '';
+        var solucao = (d && d.solucao) || '';
+
+        out += '<div class="rv-equipe">'
+            + '<div class="rv-header">'
+            + '<div class="rv-num">' + i + '</div>'
             + '<h3>' + nome + '</h3>'
-            + '<span>Equipe ' + i + '</span>'
+            + '<div class="rv-fases">' + fasesHtml + '</div>'
             + '</div>'
-            + '<div class="resposta-fields">'
-            + '<div class="resposta-field"><label>🔴 Nó do Processo</label>'
-            + '<p class="' + (d&&d.no ? '' : 'empty') + '">' + (d&&d.no || 'Não preenchido') + '</p></div>'
-            + '<div class="resposta-field"><label>🟠 Impacto na Ponta</label>'
-            + '<p class="' + (d&&d.impacto ? '' : 'empty') + '">' + (d&&d.impacto || 'Não preenchido') + '</p></div>'
-            + '<div class="resposta-field"><label>🟢 Solução Prática</label>'
-            + '<p class="' + (d&&d.solucao ? '' : 'empty') + '">' + (d&&d.solucao || 'Não preenchido') + '</p></div>'
-            + (chips ? '<div class="resposta-field"><label>🔵 Tipos de Solução</label><div class="resposta-chips">' + chips + '</div></div>' : '')
-            + '</div></div>';
+            + '<div class="rv-grid">'
+            // Quadrante 1
+            + '<div class="rv-quadrant">'
+            + '<div class="rv-qtitle red">🔴 Nó do Processo — O Problema</div>'
+            + '<p class="rv-qtext' + (no ? '' : ' empty') + '">' + (no || 'Não preenchido') + '</p>'
+            + '</div>'
+            // Quadrante 2
+            + '<div class="rv-quadrant">'
+            + '<div class="rv-qtitle orange">🟠 Impacto na Ponta — A Consequência</div>'
+            + '<p class="rv-qtext' + (impacto ? '' : ' empty') + '">' + (impacto || 'Não preenchido') + '</p>'
+            + '</div>'
+            // Quadrante 3
+            + '<div class="rv-quadrant">'
+            + '<div class="rv-qtitle green">🟢 Solução Prática — A Ideia</div>'
+            + '<p class="rv-qtext' + (solucao ? '' : ' empty') + '">' + (solucao || 'Não preenchido') + '</p>'
+            + '</div>'
+            // Quadrante 4
+            + '<div class="rv-quadrant">'
+            + '<div class="rv-qtitle blue">🔵 Tipos de Solução — O Formato</div>'
+            + (chips
+                ? '<div class="rv-chips">' + chips + '</div>'
+                : '<p class="rv-qtext empty">Nenhuma opção marcada</p>')
+            + '</div>'
+            + '</div>'  // rv-grid
+            + '</div>'; // rv-equipe
     }
 
     body.innerHTML = hasAny
         ? out
         : '<div class="respostas-empty"><div class="big">📭</div><p>Nenhuma equipe respondeu ainda.</p></div>';
+
+    storeRespostasData(eqData, canvas);
 }
 
 
@@ -1984,6 +2243,69 @@ function confirmToken() {
 
 function closeTokenModal() {
     document.getElementById('modal-token').classList.remove('show');
+}
+
+
+// ════════════════════════════════════════════
+//  VISUALIZADOR DE CANVAS
+// ════════════════════════════════════════════
+var _canvasViewData  = {};
+var _canvasViewEqData = {};
+
+function storeRespostasData(eqData, canvas) {
+    _canvasViewEqData = eqData;
+    _canvasViewData   = canvas;
+}
+
+function openCanvasView(n) {
+    var d    = _canvasViewData[n];
+    var info = _canvasViewEqData['equipe_' + n];
+    var nome = (d && d.nome) || (info && info.nome) || ('Equipe ' + n);
+
+    document.getElementById('cv-title').textContent = 'Canvas — ' + nome;
+    document.getElementById('cv-meta').textContent  = 'Equipe ' + n;
+
+    var FASES = ['Captação/Ingresso', 'V. Acadêmica', 'Financeiro', 'Certificação'];
+    var faseRow = '';
+    for (var f = 0; f < 4; f++) {
+        var ativo = d && d['chk' + (f+1)];
+        faseRow += '<span class="cv-fase' + (ativo ? ' active' : '') + '">' + FASES[f] + '</span>';
+    }
+
+    var no      = (d && d.no)      || '';
+    var impacto = (d && d.impacto) || '';
+    var solucao = (d && d.solucao) || '';
+
+    var chips = '';
+    if (d) {
+        for (var s = 0; s < SOLUCAO_LABELS.length; s++) {
+            if (d['sol' + (s+1)]) {
+                chips += '<span class="cv-sol-chip">' + SOLUCAO_LABELS[s] + '</span>';
+            }
+        }
+    }
+
+    document.getElementById('cv-body').innerHTML =
+        '<div class="cv-fase-row">' + (faseRow || '<span style="color:#a0aec0;font-size:.85rem">Nenhuma fase marcada</span>') + '</div>'
+        + '<div class="cv-grid">'
+        + '<div class="cv-card"><div class="cv-card-title red">🔴 Nó do Processo — O Problema</div>'
+        + '<p class="cv-card-text' + (no ? '' : ' empty') + '">' + (no || 'Não preenchido') + '</p></div>'
+        + '<div class="cv-card"><div class="cv-card-title orange">🟠 Impacto na Ponta — A Consequência</div>'
+        + '<p class="cv-card-text' + (impacto ? '' : ' empty') + '">' + (impacto || 'Não preenchido') + '</p></div>'
+        + '<div class="cv-card"><div class="cv-card-title green">🟢 Solução Prática — A Ideia</div>'
+        + '<p class="cv-card-text' + (solucao ? '' : ' empty') + '">' + (solucao || 'Não preenchido') + '</p></div>'
+        + '<div class="cv-card"><div class="cv-card-title blue">🔵 Tipos de Solução — O Formato</div>'
+        + (chips
+            ? '<div class="cv-sol-chips">' + chips + '</div>'
+            : '<p class="cv-card-text empty">Nenhuma opção marcada</p>')
+        + '</div>'
+        + '</div>';
+
+    document.getElementById('modal-canvas-view').classList.add('show');
+}
+
+function closeCanvasView() {
+    document.getElementById('modal-canvas-view').classList.remove('show');
 }
 
 // ════════════════════════════════════════════
