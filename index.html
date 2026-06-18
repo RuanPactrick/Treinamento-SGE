@@ -1871,16 +1871,16 @@ function showRespostas() {
             canvasRefs[3].get(),
             canvasRefs[4].get()
         ]).then(function(snaps) {
-            var eqData  = snaps[0].exists() ? snaps[0].data() : {};
+            var eqData  = snaps[0].exists ? snaps[0].data() : {};
             var canvas  = {};
             for (var i = 0; i < 5; i++) {
-                canvas[i+1] = snaps[i+1].exists() ? snaps[i+1].data() : null;
+                canvas[i+1] = snaps[i+1].exists ? snaps[i+1].data() : null;
             }
             renderRespostas(body, eqData, canvas);
 
             // Listeners ao vivo para atualizar em tempo real
             var unsubEq = equipesRef.onSnapshot(function(snap) {
-                eqData = snap.exists() ? snap.data() : {};
+                eqData = snap.exists ? snap.data() : {};
                 renderRespostas(body, eqData, canvas);
             });
             window._respostasListeners.push(unsubEq);
@@ -1888,7 +1888,7 @@ function showRespostas() {
             for (var j = 1; j <= 5; j++) {
                 (function(n) {
                     var unsub = db.collection('canvas').doc('equipe_' + n).onSnapshot(function(snap) {
-                        canvas[n] = snap.exists() ? snap.data() : null;
+                        canvas[n] = snap.exists ? snap.data() : null;
                         renderRespostas(body, eqData, canvas);
                     });
                     window._respostasListeners.push(unsub);
